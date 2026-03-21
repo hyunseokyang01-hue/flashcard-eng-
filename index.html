@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>English Flashcard</title>
+<style>
+:root {
+  --bg: #0f1117; --surface: #1a1d27; --card: #222535; --border: #2e3248;
+  --accent: #4f8ef7; --accent2: #7c5cfc; --green: #3ecf8e; --red: #f76f6f;
+  --yellow: #f7c948; --text: #e8eaf0; --muted: #8892aa; --radius: 12px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; min-height: 100vh; }
+.header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 16px 0; position: sticky; top: 0; z-index: 100; }
+.header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.logo { font-size: 17px; font-weight: 700; }
+.logo span { color: var(--accent); }
+.word-count { font-size: 12px; color: var(--muted); background: var(--card); padding: 3px 8px; border-radius: 20px; }
+.tabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab { padding: 8px 14px; font-size: 13px; font-weight: 500; color: var(--muted); border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.content { padding: 16px; max-width: 600px; margin: 0 auto; }
+.page { display: none; }
+.page.active { display: block; }
+.search-box { position: relative; margin-bottom: 14px; }
+.search-box input { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 36px 10px 12px; color: var(--text); font-size: 14px; outline: none; }
+.search-box input:focus { border-color: var(--accent); }
+.search-box .clear { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); cursor: pointer; font-size: 16px; background: none; border: none; }
+.filter-chips { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 14px; scrollbar-width: none; padding-bottom: 2px; }
+.filter-chips::-webkit-scrollbar { display: none; }
+.chip { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1.5px solid var(--border); background: var(--surface); color: var(--muted); white-space: nowrap; }
+.chip.active { border-color: var(--accent); color: var(--accent); background: rgba(79,142,247,0.1); }
+.word-list { display: flex; flex-direction: column; gap: 8px; }
+.word-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.word-info { flex: 1; min-width: 0; }
+.word-en { font-size: 15px; font-weight: 600; }
+.word-pos { font-size: 11px; color: var(--accent2); font-weight: 500; }
+.word-ko { font-size: 13px; color: var(--muted); margin-top: 3px; }
+.word-actions { display: flex; gap: 6px; }
+.btn-icon { background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; padding: 4px; }
+.pagination { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; padding: 8px 0; }
+.btn-page { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 7px 16px; border-radius: 8px; font-size: 13px; cursor: pointer; }
+.btn-page:disabled { opacity: 0.4; cursor: default; }
+.page-info { font-size: 13px; color: var(--muted); }
+.section-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; }
+.section-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+.quiz-controls { display: flex; gap: 10px; margin-bottom: 10px; }
+.quiz-mode-btn { flex: 1; padding: 10px; border: 1.5px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--muted); font-size: 13px; font-weight: 500; cursor: pointer; }
+.quiz-mode-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(79,142,247,0.08); }
+.form-label { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: block; }
+.form-input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; color: var(--text); font-size: 14px; outline: none; margin-bottom: 10px; }
+.form-input:focus { border-color: var(--accent); }
+.form-row { display: flex; gap: 8px; }
+.form-row .form-input { flex: 1; margin-bottom: 0; }
+.btn { padding: 11px 18px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; }
+.btn-primary { background: var(--accent); color: #fff; width: 100%; margin-top: 10px; }
+.btn-secondary { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
+.btn-danger { background: var(--red); color: #fff; }
+.btn-full { width: 100%; }
+.btn-ai { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; width: 100%; margin-bottom: 10px; }
+.quiz-header { text-align: center; margin-bottom: 20px; }
+.quiz-progress { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+.quiz-score-display { font-size: 13px; color: var(--green); font-weight: 600; }
+.progress-bar { background: var(--surface); border-radius: 4px; height: 4px; margin-bottom: 20px; overflow: hidden; }
+.progress-fill { background: linear-gradient(90deg, var(--accent), var(--accent2)); height: 100%; border-radius: 4px; transition: width 0.3s; }
+.quiz-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px 20px; text-align: center; margin-bottom: 18px; min-height: 140px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+.quiz-question { font-size: 24px; font-weight: 700; line-height: 1.3; }
+.quiz-sub { font-size: 13px; color: var(--muted); }
+.quiz-pos { font-size: 12px; color: var(--accent2); font-weight: 600; }
+.quiz-options { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+.opt-btn { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 14px 16px; text-align: left; font-size: 14px; color: var(--text); cursor: pointer; line-height: 1.4; width: 100%; }
+.opt-btn.correct { border-color: var(--green); background: rgba(62,207,142,0.1); color: var(--green); }
+.opt-btn.wrong-ans { border-color: var(--red); background: rgba(247,111,111,0.1); color: var(--red); }
+.result-box { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px 20px; text-align: center; margin-bottom: 16px; }
+.result-emoji { font-size: 48px; margin-bottom: 12px; }
+.result-score { font-size: 32px; font-weight: 700; margin-bottom: 6px; }
+.result-sub { font-size: 14px; color: var(--muted); }
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.stat-card { background: var(--card); border-radius: 10px; padding: 12px; text-align: center; }
+.stat-num { font-size: 24px; font-weight: 700; color: var(--accent); }
+.stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.ai-result { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 10px; }
+.ai-result-en { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.ai-result-ko { font-size: 14px; color: var(--muted); line-height: 1.5; }
+.api-status { font-size: 12px; padding: 4px 8px; border-radius: 6px; font-weight: 500; }
+.api-status.ok { background: rgba(62,207,142,0.15); color: var(--green); }
+.api-status.none { background: rgba(247,111,111,0.15); color: var(--red); }
+.wrong-card { background: var(--surface); border: 1px solid rgba(247,111,111,0.3); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 8px; }
+.wrong-count { font-size: 11px; color: var(--red); font-weight: 600; margin-bottom: 4px; }
+.info-text { font-size: 12px; color: var(--muted); line-height: 1.6; padding: 10px 12px; background: var(--card); border-radius: 8px; }
+.loading { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 18px; font-size: 13px; font-weight: 500; z-index: 999; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; }
+.toast.show { opacity: 1; }
+.toast.success { border-color: var(--green); color: var(--green); }
+.toast.error { border-color: var(--red); color: var(--red); }
+.empty { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 14px; }
+.empty-icon { font-size: 40px; margin-bottom: 10px; }
+.section-divider { height: 1px; background: var(--border); margin: 16px 0; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-top">
+    <div class="logo">EN <span>Flash</span>card</div>
+    <div class="word-count" id="wordCount">0개</div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="showPage('list')">단어장</button>
+    <button class="tab" onclick="showPage('quiz')">퀴즈</button>
+    <button class="tab" onclick="showPage('add')">단어추가</button>
+    <button class="tab" onclick="showPage('wrong')">오답노트</button>
+    <button class="tab" onclick="showPage('export')">관리</button>
+  </div>
+</div>
+
+<div class="content">
+  <!-- 단어장 -->
+  <div id="page-list" class="page active">
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="영어 또는 한국어 검색..." oninput="filterWords()">
+      <button class="clear" onclick="clearSearch()">x</button>
+    </div>
+    <div class="filter-chips" id="filterChips">
+      <div class="chip active" onclick="setFilter('all',this)">전체</div>
+      <div class="chip" onclick="setFilter('[형]',this)">[형]</div>
+      <div class="chip" onclick="setFilter('[명]',this)">[명]</div>
+      <div class="chip" onclick="setFilter('[동]',this)">[동]</div>
+      <div class="chip" onclick="setFilter('[구동사]',this)">[구동사]</div>
+      <div class="chip" onclick="setFilter('[부사]',this)">[부사]</div>
+      <div class="chip" onclick="setFilter('[구]',this)">[구]</div>
+    </div>
+    <div id="wordList" class="word-list"></div>
+    <div class="pagination" id="pagination"></div>
+  </div>
+
+  <!-- 퀴즈 -->
+  <div id="page-quiz" class="page">
+    <div id="quizSetup">
+      <div class="section-box">
+        <div class="section-title">퀴즈 설정</div>
+        <div class="quiz-controls">
+          <button class="quiz-mode-btn active" id="modeBtn1" onclick="setQuizMode('en-ko')">영 to 한</button>
+          <button class="quiz-mode-btn" id="modeBtn2" onclick="setQuizMode('ko-en')">한 to 영</button>
+        </div>
+        <label class="form-label">문제 수</label>
+        <select id="quizCount" class="form-input">
+          <option value="5">5문제</option>
+          <option value="10" selected>10문제</option>
+          <option value="20">20문제</option>
+          <option value="30">30문제</option>
+        </select>
+        <button class="btn btn-primary" onclick="startQuiz()">퀴즈 시작</button>
+      </div>
+      <div class="section-box">
+        <div class="section-title">퀴즈 통계</div>
+        <div class="stat-grid">
+          <div class="stat-card"><div class="stat-num" id="statTotal">0</div><div class="stat-label">총 풀이 수</div></div>
+          <div class="stat-card"><div class="stat-num" id="statRate" style="color:var(--green)">0%</div><div class="stat-label">정답률</div></div>
+        </div>
+      </div>
+    </div>
+    <div id="quizActive" style="display:none">
+      <div class="quiz-header">
+        <div class="quiz-progress" id="quizProgress">1 / 10</div>
+        <div class="quiz-score-display" id="quizScoreDisplay">정답: 0</div>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+      <div class="quiz-card">
+        <div class="quiz-pos" id="quizPos"></div>
+        <div class="quiz-question" id="quizQuestion"></div>
+        <div class="quiz-sub" id="quizSub"></div>
+      </div>
+      <div class="quiz-options" id="quizOptions"></div>
+      <button class="btn btn-secondary btn-full" onclick="stopQuiz()">퀴즈 종료</button>
+    </div>
+    <div id="quizResult" style="display:none">
+      <div class="result-box">
+        <div class="result-emoji" id="resultEmoji">🎉</div>
+        <div class="result-score" id="resultScore">0/10</div>
+        <div class="result-sub" id="resultSub"></div>
+      </div>
+      <div id="wrongList" style="margin-bottom:16px"></div>
+      <button class="btn btn-primary btn-full" onclick="restartQuiz()">다시 풀기</button>
+      <button class="btn btn-secondary btn-full" style="margin-top:8px" onclick="stopQuiz()">설정으로</button>
+    </div>
+  </div>
+
+  <!-- 단어추가 -->
+  <div id="page-add" class="page">
+    <div class="section-box">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span style="font-size:13px;font-weight:600;color:var(--muted)">Anthropic API 키</span>
+        <span class="api-status none" id="apiStatus">미설정</span>
+      </div>
+      <input type="password" id="apiKeyInput" class="form-input" placeholder="sk-ant-...">
+      <button class="btn btn-secondary btn-full" onclick="saveApiKey()">저장</button>
+      <div class="info-text" style="margin-top:8px">API 키는 이 기기의 localStorage에만 저장됩니다.</div>
+    </div>
+    <div class="section-box">
+      <label class="form-label">AI 검색 (영단어 입력)</label>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <input type="text" id="aiSearchInput" class="form-input" placeholder="검색할 단어..." style="margin:0;flex:1" onkeydown="if(event.key==='Enter')aiSearch()">
+        <button class="btn btn-secondary" onclick="aiSearch()" id="aiSearchBtn">검색</button>
+      </div>
+      <div id="aiResultBox" style="display:none">
+        <div class="ai-result" id="aiResultContent"></div>
+        <button class="btn btn-ai" onclick="addFromAI()">+ 단어장에 추가</button>
+      </div>
+    </div>
+    <div class="section-divider"></div>
+    <div class="section-box">
+      <label class="form-label">직접 입력</label>
+      <input type="text" id="manualEn" class="form-input" placeholder="English word">
+      <div class="form-row">
+        <input type="text" id="manualPos" class="form-input" placeholder="품사 (예: [명])">
+        <input type="text" id="manualKo" class="form-input" placeholder="한국어 뜻">
+      </div>
+      <button class="btn btn-primary" onclick="addManual()">추가</button>
+    </div>
+  </div>
+
+  <!-- 오답노트 -->
+  <div id="page-wrong" class="page">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="font-size:15px;font-weight:600">오답노트 <span id="wrongTotal" style="color:var(--muted);font-size:13px"></span></div>
+      <button class="btn btn-secondary" style="font-size:12px;padding:6px 12px" onclick="clearWrong()">초기화</button>
+    </div>
+    <div id="wrongNoteList"></div>
+  </div>
+
+  <!-- 관리 -->
+  <div id="page-export" class="page">
+    <div class="section-box">
+      <div class="section-title">통계</div>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-num" id="statWords">0</div><div class="stat-label">총 단어</div></div>
+        <div class="stat-card"><div class="stat-num" id="statCustom" style="color:var(--green)">0</div><div class="stat-label">추가한 단어</div></div>
+        <div class="stat-card"><div class="stat-num" id="statWrong" style="color:var(--red)">0</div><div class="stat-label">오답 단어</div></div>
+        <div class="stat-card"><div class="stat-num" id="statQuizDone">0</div><div class="stat-label">퀴즈 완료</div></div>
+      </div>
+    </div>
+    <div class="section-box">
+      <div class="section-title">내보내기 / 가져오기</div>
+      <button class="btn btn-primary btn-full" onclick="exportData()" style="margin-bottom:8px">JSON 내보내기</button>
+      <button class="btn btn-secondary btn-full" onclick="document.getElementById('importFile').click()">JSON 가져오기</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+    </div>
+    <div class="section-box">
+      <div class="section-title">초기화</div>
+      <button class="btn btn-danger btn-full" onclick="resetCustom()">추가한 단어만 삭제</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var BUILTIN = JSON.parse("[{\"id\": \"e001\", \"en\": \"interim\", \"pos\": \"[형]\", \"ko\": \"중간[임시/과도]의, 잠정적인\"}, {\"id\": \"e002\", \"en\": \"deadlock\", \"pos\": \"[명]\", \"ko\": \"교착 상태, 협상의 막힘\"}, {\"id\": \"e003\", \"en\": \"scheme\", \"pos\": \"[명/동]\", \"ko\": \"(운영) 계획, 제도 / 책략 / 책략을 꾸미다\"}, {\"id\": \"e004\", \"en\": \"stopgap\", \"pos\": \"[명]\", \"ko\": \"임시방편\"}, {\"id\": \"e005\", \"en\": \"tentatively\", \"pos\": \"[부사]\", \"ko\": \"시험[실험]적으로, 망설이며\"}, {\"id\": \"e006\", \"en\": \"repercussion\", \"pos\": \"[명]\", \"ko\": \"(어떤 사건이 초래한) 간접적인 영향\"}, {\"id\": \"e007\", \"en\": \"expedite\", \"pos\": \"[동]\", \"ko\": \"더 신속히 처리하다\"}, {\"id\": \"e008\", \"en\": \"expansionary\", \"pos\": \"[형]\", \"ko\": \"(경제를) 신장시키는\"}, {\"id\": \"e009\", \"en\": \"therapeutics\", \"pos\": \"[명]\", \"ko\": \"치료법, 치료학\"}, {\"id\": \"e010\", \"en\": \"exemption\", \"pos\": \"[명]\", \"ko\": \"면제, (세금) 공제\"}, {\"id\": \"e011\", \"en\": \"endorsement\", \"pos\": \"[명]\", \"ko\": \"(공개적인) 지지 / (유명인의 광고) 보증[홍보]\"}, {\"id\": \"e012\", \"en\": \"lender\", \"pos\": \"[명]\", \"ko\": \"빌려주는 사람, 대출 기관\"}, {\"id\": \"e013\", \"en\": \"amplify\", \"pos\": \"[동]\", \"ko\": \"증폭시키다 / 더 자세히 진술하다\"}, {\"id\": \"e014\", \"en\": \"deterioration\", \"pos\": \"[명]\", \"ko\": \"악화, 가치의 하락, 퇴보\"}, {\"id\": \"e015\", \"en\": \"hinge on\", \"pos\": \"[구동사]\", \"ko\": \"~에 달려있다\"}, {\"id\": \"e016\", \"en\": \"equivalent\", \"pos\": \"[형/명]\", \"ko\": \"(가치·중요도 등이) 동등한[맞먹는] / 등가물\"}, {\"id\": \"e017\", \"en\": \"opt to\", \"pos\": \"[동사구]\", \"ko\": \"~하기로 선택하다\"}, {\"id\": \"e018\", \"en\": \"Cabinet meeting\", \"pos\": \"[명]\", \"ko\": \"각료 회의\"}, {\"id\": \"e019\", \"en\": \"dent\", \"pos\": \"[동/명]\", \"ko\": \"움푹 들어가게 하다 / (자신감 등을) 훼손하다 / 움푹 들어간 곳\"}, {\"id\": \"e020\", \"en\": \"imperative\", \"pos\": \"[형]\", \"ko\": \"반드시 해야 하는, 긴요한 / 위엄 있는\"}, {\"id\": \"e021\", \"en\": \"devious\", \"pos\": \"[형]\", \"ko\": \"정직하지 못한, 기만적인\"}, {\"id\": \"e022\", \"en\": \"satire\", \"pos\": \"[명]\", \"ko\": \"풍자\"}, {\"id\": \"e023\", \"en\": \"recrimination\", \"pos\": \"[명]\", \"ko\": \"(상대방의 비난에 맞서는) 비난, 맞대응\"}, {\"id\": \"e024\", \"en\": \"mollify\", \"pos\": \"[동]\", \"ko\": \"(사람을) 달래다[진정시키다]\"}, {\"id\": \"e025\", \"en\": \"apparatus\", \"pos\": \"[명]\", \"ko\": \"기구, 장치 / (특히 정당·정부의) 조직체[기구]\"}, {\"id\": \"e026\", \"en\": \"legislative\", \"pos\": \"[형]\", \"ko\": \"입법의, 입법부의\"}, {\"id\": \"e027\", \"en\": \"stifle\", \"pos\": \"[동]\", \"ko\": \"(감정 등을) 억누르다, 억압하다 / 숨이 막히다\"}, {\"id\": \"e028\", \"en\": \"accuse of\", \"pos\": \"[동사구]\", \"ko\": \"~의 죄로 고발[고소, 기소]하다\"}, {\"id\": \"e029\", \"en\": \"tainted\", \"pos\": \"[형]\", \"ko\": \"더럽혀진, 썩은, 부패한\"}, {\"id\": \"e030\", \"en\": \"respiratory\", \"pos\": \"[형]\", \"ko\": \"호흡의, 호흡 기관의\"}, {\"id\": \"e031\", \"en\": \"acute\", \"pos\": \"[형]\", \"ko\": \"격심한, 극심한 / (질병이) 급성의 / 예민한\"}, {\"id\": \"e032\", \"en\": \"thuggish\", \"pos\": \"[형]\", \"ko\": \"폭력적인, 난폭한, 암살의\"}, {\"id\": \"e033\", \"en\": \"bungling\", \"pos\": \"[형/명]\", \"ko\": \"서투른 (솜씨)\"}, {\"id\": \"e034\", \"en\": \"accusation\", \"pos\": \"[명]\", \"ko\": \"혐의 제기, 비난 / 고발, 기소\"}, {\"id\": \"e035\", \"en\": \"simmering\", \"pos\": \"[형]\", \"ko\": \"당장이라도 폭발할 것 같은\"}, {\"id\": \"e036\", \"en\": \"reprimand\", \"pos\": \"[동/명]\", \"ko\": \"질책하다 / 질책\"}, {\"id\": \"e037\", \"en\": \"offset\", \"pos\": \"[동]\", \"ko\": \"상쇄[벌충]하다\"}, {\"id\": \"e038\", \"en\": \"inherent\", \"pos\": \"[형]\", \"ko\": \"내재하는\"}, {\"id\": \"e039\", \"en\": \"outlook\", \"pos\": \"[명]\", \"ko\": \"관점, 세계관, 인생관 / (앞날에 대한) 전망\"}, {\"id\": \"e040\", \"en\": \"initiative\", \"pos\": \"[명]\", \"ko\": \"(새로운) 계획 / 진취성, 결단력 / 주도권\"}, {\"id\": \"e041\", \"en\": \"capability\", \"pos\": \"[명]\", \"ko\": \"능력, 역량 / (한 국가의) 능력[힘]\"}, {\"id\": \"e042\", \"en\": \"assess\", \"pos\": \"[동]\", \"ko\": \"(특성·자질 등을) 재다[가늠하다] / 평가하다\"}, {\"id\": \"e043\", \"en\": \"outbreak\", \"pos\": \"[명]\", \"ko\": \"(전쟁·사고·질병 등의) 발생[발발]\"}, {\"id\": \"e044\", \"en\": \"curtail\", \"pos\": \"[동]\", \"ko\": \"축소[삭감/단축]시키다\"}, {\"id\": \"e045\", \"en\": \"elaborate on\", \"pos\": \"[구동사]\", \"ko\": \"~에 대해 상세히 말하다\"}, {\"id\": \"e046\", \"en\": \"quarantine\", \"pos\": \"[명/동]\", \"ko\": \"(전염병 확산을 막기 위한) 격리 / 격리하다\"}, {\"id\": \"e047\", \"en\": \"in terms of\", \"pos\": \"[구]\", \"ko\": \"~면에서, ~에 관하여\"}, {\"id\": \"e048\", \"en\": \"contain\", \"pos\": \"[동]\", \"ko\": \"~이 들어[함유되어] 있다 / (감정을) 억누르다 / 방지하다\"}, {\"id\": \"e049\", \"en\": \"incidence\", \"pos\": \"[명]\", \"ko\": \"(사건 등의) 발생 정도[영향 범위]\"}, {\"id\": \"e050\", \"en\": \"resultant\", \"pos\": \"[형]\", \"ko\": \"(앞에 언급한) 그 결과로 생긴[그에 따른]\"}, {\"id\": \"e051\", \"en\": \"vigilance\", \"pos\": \"[명]\", \"ko\": \"경계, 조심, 각성 (상태)\"}, {\"id\": \"e052\", \"en\": \"amid\", \"pos\": \"[전치사]\", \"ko\": \"(흥분·공포심이 느껴지는) 가운데[중]에 / ~으로 에워싸인\"}, {\"id\": \"e053\", \"en\": \"vulnerable\", \"pos\": \"[형]\", \"ko\": \"(~에) 취약한, 연약한\"}, {\"id\": \"e054\", \"en\": \"prudent\", \"pos\": \"[형]\", \"ko\": \"신중한\"}, {\"id\": \"e055\", \"en\": \"bolster\", \"pos\": \"[동]\", \"ko\": \"북돋우다, 강화[개선]하다\"}, {\"id\": \"e056\", \"en\": \"skew\", \"pos\": \"[동]\", \"ko\": \"왜곡하다 / 비스듬히 움직이다[있다]\"}, {\"id\": \"e057\", \"en\": \"reiterate\", \"pos\": \"[동]\", \"ko\": \"(이미 한 말을, 특히 강조하기 위해) 반복하다[되풀이하다]\"}, {\"id\": \"e058\", \"en\": \"concurrently\", \"pos\": \"[부사]\", \"ko\": \"(~와) 동시에, 함께\"}, {\"id\": \"e059\", \"en\": \"underpin\", \"pos\": \"[동]\", \"ko\": \"(주장 등을) 뒷받침하다 / (벽을) 보강하다\"}, {\"id\": \"e060\", \"en\": \"polarization\", \"pos\": \"[명]\", \"ko\": \"양극화, (정당·의견 등의) 대립\"}, {\"id\": \"e061\", \"en\": \"tackle\", \"pos\": \"[동]\", \"ko\": \"(힘든 문제·상황과) 씨름하다 / 솔직하게 말하다[따지다]\"}, {\"id\": \"e062\", \"en\": \"permeate\", \"pos\": \"[동]\", \"ko\": \"스며들다, 침투하다 / 퍼지다\"}, {\"id\": \"e063\", \"en\": \"discrepancy\", \"pos\": \"[명]\", \"ko\": \"(같아야 할 것들 사이의) 차이[불일치]\"}, {\"id\": \"e064\", \"en\": \"withhold\", \"pos\": \"[동]\", \"ko\": \"(~을) 주지 않다\"}, {\"id\": \"e065\", \"en\": \"explicit\", \"pos\": \"[형]\", \"ko\": \"분명한, 명쾌한 / 솔직한 / 노골적인\"}, {\"id\": \"e066\", \"en\": \"quaint\", \"pos\": \"[형]\", \"ko\": \"(매력 있게) 진기한[예스러운]\"}, {\"id\": \"e067\", \"en\": \"beckon\", \"pos\": \"[동]\", \"ko\": \"(오라고) 손짓하다 / 아주 매력적으로 보이다\"}, {\"id\": \"e068\", \"en\": \"sterile\", \"pos\": \"[형]\", \"ko\": \"불임의 / 살균한 / 아무 소득 없는, 무익한\"}, {\"id\": \"e069\", \"en\": \"strait\", \"pos\": \"[명]\", \"ko\": \"해협 / (특히 경제적인) 궁핍[곤경]\"}, {\"id\": \"e070\", \"en\": \"sabbatical\", \"pos\": \"[명]\", \"ko\": \"안식 기간 (대학 교수가 연구·여행을 하는 기간)\"}, {\"id\": \"e071\", \"en\": \"diagnostic\", \"pos\": \"[형/명]\", \"ko\": \"진단의 / 진단 프로그램\"}, {\"id\": \"e072\", \"en\": \"muddle\", \"pos\": \"[동/명]\", \"ko\": \"헝클어뜨리다 / 혼동하다 / (정신적인) 혼란 상태\"}, {\"id\": \"e073\", \"en\": \"beset\", \"pos\": \"[동]\", \"ko\": \"괴롭히다\"}, {\"id\": \"e074\", \"en\": \"coordination\", \"pos\": \"[명]\", \"ko\": \"조직(화), 합동, 조화 / (신체 동작의) 조정력\"}, {\"id\": \"e075\", \"en\": \"distinction\", \"pos\": \"[명]\", \"ko\": \"(뚜렷한) 차이[대조] / 뛰어남, 탁월함 / 구분, 차별\"}, {\"id\": \"e076\", \"en\": \"distinctive\", \"pos\": \"[형]\", \"ko\": \"독특한\"}, {\"id\": \"e077\", \"en\": \"dysfunctional\", \"pos\": \"[형]\", \"ko\": \"제대로 기능을 하지 않는, 고장난\"}, {\"id\": \"e078\", \"en\": \"hoard\", \"pos\": \"[명/동]\", \"ko\": \"(비밀 장소에 모아 놓은) 비축[저장]물 / 비축하다\"}, {\"id\": \"e079\", \"en\": \"secrecy\", \"pos\": \"[명]\", \"ko\": \"비밀 유지[엄수]; 비밀(인 상태)\"}, {\"id\": \"e080\", \"en\": \"ambiguity\", \"pos\": \"[명]\", \"ko\": \"애매성, 애매모호함 / 애매모호한 말\"}, {\"id\": \"e081\", \"en\": \"ramble on\", \"pos\": \"[구동사]\", \"ko\": \"장황하게 이야기하다\"}, {\"id\": \"e082\", \"en\": \"corrective\", \"pos\": \"[형/명]\", \"ko\": \"(잘못된 것을) 바로잡는[수정/교정의] / 수정[교정]하는 것\"}, {\"id\": \"e083\", \"en\": \"procure\", \"pos\": \"[동]\", \"ko\": \"(특히 어렵게) 구하다[입수하다]\"}, {\"id\": \"e084\", \"en\": \"rectify\", \"pos\": \"[동]\", \"ko\": \"(잘못된 것을) 바로잡다\"}, {\"id\": \"e085\", \"en\": \"imperfection\", \"pos\": \"[명]\", \"ko\": \"미비점, 결함\"}, {\"id\": \"e086\", \"en\": \"equilibrium\", \"pos\": \"[명]\", \"ko\": \"평형[균형] (상태) / (마음의) 평정\"}, {\"id\": \"e087\", \"en\": \"turbulence\", \"pos\": \"[명]\", \"ko\": \"격동, 격변 / (물·공기의) 난류, 난기류\"}, {\"id\": \"e088\", \"en\": \"embryonic\", \"pos\": \"[형]\", \"ko\": \"초기의 / 배아의\"}, {\"id\": \"e089\", \"en\": \"irrespective of\", \"pos\": \"[전치사]\", \"ko\": \"~와 관계[상관]없이\"}, {\"id\": \"e090\", \"en\": \"conversion\", \"pos\": \"[명]\", \"ko\": \"전환, 개조 / 개종, 전향\"}, {\"id\": \"e091\", \"en\": \"derivative\", \"pos\": \"[명/형]\", \"ko\": \"파생어, 파생물 / 다른 것을 본뜬, 새롭지 않은\"}, {\"id\": \"e092\", \"en\": \"infringement\", \"pos\": \"[명]\", \"ko\": \"(법규) 위반, 위배 / (특허권·판권의) 침해\"}, {\"id\": \"e093\", \"en\": \"deputy\", \"pos\": \"[명]\", \"ko\": \"부-[대행/대리인] / (일부 국가의) 의원, 국회의원\"}, {\"id\": \"e094\", \"en\": \"legislator\", \"pos\": \"[명]\", \"ko\": \"입법자, 국회[의회]의원\"}, {\"id\": \"e095\", \"en\": \"finalize\", \"pos\": \"[동]\", \"ko\": \"마무리짓다, 완결하다\"}, {\"id\": \"e096\", \"en\": \"agility\", \"pos\": \"[명]\", \"ko\": \"민첩; 명민함\"}, {\"id\": \"e097\", \"en\": \"leverage\", \"pos\": \"[명]\", \"ko\": \"영향력 / 지렛대 사용; 지렛대의 힘\"}, {\"id\": \"e098\", \"en\": \"accreditation\", \"pos\": \"[명]\", \"ko\": \"승인, 인가\"}, {\"id\": \"e099\", \"en\": \"generic\", \"pos\": \"[형]\", \"ko\": \"포괄적인, 총칭[통칭]의 / 일반 명칭으로 판매되는\"}, {\"id\": \"e100\", \"en\": \"immense\", \"pos\": \"[형]\", \"ko\": \"엄청난, 어마어마한\"}, {\"id\": \"e101\", \"en\": \"decent\", \"pos\": \"[형]\", \"ko\": \"(수준·질이) 괜찮은[제대로 된] / 품위 있는, 예의 바른\"}, {\"id\": \"e102\", \"en\": \"exacerbate\", \"pos\": \"[동]\", \"ko\": \"(특히 질병·문제를) 악화시키다\"}, {\"id\": \"e103\", \"en\": \"default\", \"pos\": \"[명/동]\", \"ko\": \"채무 불이행, 디폴트 / (채무를) 이행하지 않다\"}, {\"id\": \"e104\", \"en\": \"conversely\", \"pos\": \"[부사]\", \"ko\": \"정반대로, 역으로\"}, {\"id\": \"e105\", \"en\": \"circumvent\", \"pos\": \"[동]\", \"ko\": \"(어려움이나 법 등을) 피하다[면하다]\"}, {\"id\": \"e106\", \"en\": \"retaliation\", \"pos\": \"[명]\", \"ko\": \"보복, 앙갚음\"}, {\"id\": \"e107\", \"en\": \"complement\", \"pos\": \"[동/명]\", \"ko\": \"보완하다 / 보완물, 금상첨화격 요소\"}, {\"id\": \"e108\", \"en\": \"convergence\", \"pos\": \"[명]\", \"ko\": \"한 점으로 집합함, 집중성 / [수학] 수렴\"}, {\"id\": \"e109\", \"en\": \"encompass\", \"pos\": \"[동]\", \"ko\": \"(많은 것을) 포함[망라]하다, 아우르다\"}, {\"id\": \"e110\", \"en\": \"illuminating\", \"pos\": \"[형]\", \"ko\": \"이해를 돕는, 분명하게 하는\"}, {\"id\": \"e111\", \"en\": \"hedge\", \"pos\": \"[명/동]\", \"ko\": \"생울타리 / (손실을 막기 위한) 대비책 / 얼버무리다\"}, {\"id\": \"e112\", \"en\": \"signpost\", \"pos\": \"[명/동]\", \"ko\": \"(도로) 표지판, 이정표 / (주장·연설의) 방향을 제시하다\"}, {\"id\": \"e113\", \"en\": \"intervene\", \"pos\": \"[동]\", \"ko\": \"(상황 개선을 돕기 위해) 개입하다 / 끼어들다[가로막다]\"}, {\"id\": \"e114\", \"en\": \"relinquish\", \"pos\": \"[동]\", \"ko\": \"(특히 마지못해 소유권 등을) 포기하다[내주다]\"}, {\"id\": \"e115\", \"en\": \"metaphor\", \"pos\": \"[명]\", \"ko\": \"은유, 비유\"}, {\"id\": \"e116\", \"en\": \"stave off\", \"pos\": \"[구동사]\", \"ko\": \"비키다, 피하다, 간신히 모면하다\"}, {\"id\": \"e117\", \"en\": \"outset\", \"pos\": \"[명]\", \"ko\": \"착수, 시초, 발단\"}, {\"id\": \"e118\", \"en\": \"paramount\", \"pos\": \"[형]\", \"ko\": \"다른 무엇보다[가장] 중요한 / (지위·권력이) 최고의\"}, {\"id\": \"e119\", \"en\": \"implicit\", \"pos\": \"[형]\", \"ko\": \"암시된, 내포된 / 절대적인, 무조건적인\"}, {\"id\": \"e120\", \"en\": \"detriment\", \"pos\": \"[명]\", \"ko\": \"손상(을 초래하는 것)\"}, {\"id\": \"e121\", \"en\": \"avenue\", \"pos\": \"[명]\", \"ko\": \"(도시의) 거리 / 진입 도로 / (나아갈) 길, 방안\"}, {\"id\": \"e122\", \"en\": \"insofar\", \"pos\": \"[부사]\", \"ko\": \"~하는 한에 있어서는\"}, {\"id\": \"e123\", \"en\": \"plummet\", \"pos\": \"[동]\", \"ko\": \"곤두박질치다, 급락하다\"}, {\"id\": \"e124\", \"en\": \"emergent\", \"pos\": \"[형]\", \"ko\": \"신생의, 신흥의\"}, {\"id\": \"e125\", \"en\": \"obscure\", \"pos\": \"[형/동]\", \"ko\": \"잘 알려져 있지 않은, 무명의 / 이해하기 힘든 / 모호하게 하다\"}, {\"id\": \"e126\", \"en\": \"premise\", \"pos\": \"[명]\", \"ko\": \"(주장의) 전제\"}, {\"id\": \"e127\", \"en\": \"overriding\", \"pos\": \"[형]\", \"ko\": \"다른 무엇보다 더 중요한, 최우선시 되는\"}, {\"id\": \"e128\", \"en\": \"tumble\", \"pos\": \"[동/명]\", \"ko\": \"굴러 떨어지다 / 폭삭 무너지다 / 폭락, 빠른 하락\"}, {\"id\": \"e129\", \"en\": \"appreciation\", \"pos\": \"[명]\", \"ko\": \"감탄, 감상 / 감사 / 가치 상승\"}, {\"id\": \"e130\", \"en\": \"obsolete\", \"pos\": \"[형]\", \"ko\": \"더 이상 쓸모가 없는, 한물간, 구식의\"}, {\"id\": \"e131\", \"en\": \"staggering\", \"pos\": \"[형]\", \"ko\": \"(너무 엄청나서) 충격적인, 믿기 어려운\"}, {\"id\": \"e132\", \"en\": \"pitfall\", \"pos\": \"[명]\", \"ko\": \"(눈에 잘 안 띄는) 위험[곤란]\"}, {\"id\": \"e133\", \"en\": \"overhaul\", \"pos\": \"[명/동]\", \"ko\": \"(기계·시스템의) 점검[정비] / 점검[정비]하다 / 앞지르다\"}, {\"id\": \"e134\", \"en\": \"governance\", \"pos\": \"[명]\", \"ko\": \"통치, 관리; 통치[관리] 방식\"}, {\"id\": \"e135\", \"en\": \"backwater\", \"pos\": \"[명]\", \"ko\": \"(강의 잔잔한) 후미 / (발전·변화의 영향을 덜 받는) 후미진 곳\"}, {\"id\": \"e136\", \"en\": \"readership\", \"pos\": \"[명]\", \"ko\": \"(특정 신문·잡지의) 독자 수[층]\"}, {\"id\": \"e137\", \"en\": \"circumscribe\", \"pos\": \"[동]\", \"ko\": \"(권리·자유 등을) 제한[억제]하다\"}, {\"id\": \"e138\", \"en\": \"apprehensive\", \"pos\": \"[형]\", \"ko\": \"걱정되는, 불안한\"}, {\"id\": \"e139\", \"en\": \"aptitude\", \"pos\": \"[명]\", \"ko\": \"소질, 적성\"}, {\"id\": \"e140\", \"en\": \"commensurate\", \"pos\": \"[형]\", \"ko\": \"(크기·중요도·자질 등에) 어울리는[상응하는]\"}, {\"id\": \"e141\", \"en\": \"onward\", \"pos\": \"[형]\", \"ko\": \"앞으로[계속 이어서] 나아가는\"}, {\"id\": \"e142\", \"en\": \"capitalize\", \"pos\": \"[동]\", \"ko\": \"대문자로 쓰다 / 자본화하다 / 출자하다\"}, {\"id\": \"e143\", \"en\": \"manifestation\", \"pos\": \"[명]\", \"ko\": \"(어떤 것이 존재하거나 일어나고 있음을 보여주는) 징후[표명]\"}, {\"id\": \"e144\", \"en\": \"concrete\", \"pos\": \"[형/명]\", \"ko\": \"콘크리트로 된 / 사실에 의거한, 구체적인 / 콘크리트\"}, {\"id\": \"e145\", \"en\": \"wither\", \"pos\": \"[동]\", \"ko\": \"시들다, 말라 죽다 / 약해지다, 시들어 가다\"}, {\"id\": \"e146\", \"en\": \"waiver\", \"pos\": \"[명]\", \"ko\": \"(권리 등의) 포기; 포기 서류\"}, {\"id\": \"e147\", \"en\": \"assign\", \"pos\": \"[동]\", \"ko\": \"(일·책임 등을) 맡기다[배정하다] / 선임하다 / 양도하다\"}, {\"id\": \"e148\", \"en\": \"grant\", \"pos\": \"[동/명]\", \"ko\": \"(공식·법적으로) 승인[허락]하다 / (내키지 않지만) 인정하다 / 보조금\"}, {\"id\": \"e149\", \"en\": \"constitute\", \"pos\": \"[동]\", \"ko\": \"~이 되는 것으로 여겨지다 / ~을 구성하다[이루다]\"}, {\"id\": \"e150\", \"en\": \"subsequent to\", \"pos\": \"[전치사]\", \"ko\": \"~ 다음에[뒤에]\"}, {\"id\": \"e151\", \"en\": \"duly\", \"pos\": \"[부사]\", \"ko\": \"적절한 절차에 따라, 예상대로 / 적절한 때에\"}, {\"id\": \"e152\", \"en\": \"supersede\", \"pos\": \"[동]\", \"ko\": \"대신하다, 대체하다\"}, {\"id\": \"e153\", \"en\": \"counterpart\", \"pos\": \"[명]\", \"ko\": \"(다른 상황에서 동일한 지위나 기능을 갖는) 상대, 대응 관계에 있는 사람[것]\"}, {\"id\": \"e154\", \"en\": \"construe\", \"pos\": \"[동]\", \"ko\": \"~을 (~으로) 이해[해석]하다\"}, {\"id\": \"e155\", \"en\": \"remedy\", \"pos\": \"[명/동]\", \"ko\": \"처리 방안, 해결[개선]책 / 치료(약) / 바로잡다\"}, {\"id\": \"e156\", \"en\": \"proprietary\", \"pos\": \"[형]\", \"ko\": \"등록[전매] 상표가 붙은 / 소유주[자]의\"}, {\"id\": \"e157\", \"en\": \"amendment\", \"pos\": \"[명]\", \"ko\": \"(법 등의) 개정[수정] / 미국 헌법 수정 조항\"}, {\"id\": \"e158\", \"en\": \"sabotage\", \"pos\": \"[명/동]\", \"ko\": \"사보타주, (고의적인) 방해 행위 / 방해하다\"}, {\"id\": \"e159\", \"en\": \"jurisdiction\", \"pos\": \"[명]\", \"ko\": \"관할권; 사법권 / 관할 구역\"}, {\"id\": \"e160\", \"en\": \"ombudsman\", \"pos\": \"[명]\", \"ko\": \"옴부즈맨, 행정감찰관 (시민의 고충 처리를 담당하는 공무원)\"}, {\"id\": \"e161\", \"en\": \"memorandum\", \"pos\": \"[명]\", \"ko\": \"(아직 정식으로 서명되지 않은) 각서 / (특정 주제에 대한) 제안서[보고서]\"}, {\"id\": \"e162\", \"en\": \"indigenization\", \"pos\": \"[명]\", \"ko\": \"현지 (기업) 우선, 현지인 우선 채용\"}, {\"id\": \"e163\", \"en\": \"abbreviation\", \"pos\": \"[명]\", \"ko\": \"(~의) 축약형 / 축약\"}, {\"id\": \"e164\", \"en\": \"write-off\", \"pos\": \"[명]\", \"ko\": \"(부채) 탕감 / 폐차 처리 / 공치는 시간\"}, {\"id\": \"e165\", \"en\": \"articulate\", \"pos\": \"[동/형]\", \"ko\": \"(생각·감정을) 분명히 표현하다 / 또렷이 말하다 / 잘 표현하는\"}, {\"id\": \"e166\", \"en\": \"presence\", \"pos\": \"[명]\", \"ko\": \"(특정한 곳에) 있음, 존재(함) / 주둔군 / 존재감\"}, {\"id\": \"e167\", \"en\": \"backdrop\", \"pos\": \"[명]\", \"ko\": \"(무대의) 배경(막) / (사건의) 배경[환경]\"}, {\"id\": \"e168\", \"en\": \"clamp\", \"pos\": \"[동/명]\", \"ko\": \"죔쇠로 고정시키다 / 꽉 물다[잡다] / 죔쇠\"}, {\"id\": \"e169\", \"en\": \"intuitive\", \"pos\": \"[형]\", \"ko\": \"직감[직관]에 의한 / 이해하기[사용하기] 쉬운\"}, {\"id\": \"e170\", \"en\": \"aspect\", \"pos\": \"[명]\", \"ko\": \"측면, 양상 / (건물·땅의) 방향\"}, {\"id\": \"e171\", \"en\": \"incorporate\", \"pos\": \"[동]\", \"ko\": \"(일부로) 포함하다 / (법인체를) 설립[창립]하다\"}, {\"id\": \"e172\", \"en\": \"hypothetical\", \"pos\": \"[형]\", \"ko\": \"가상적인, 가설[가정]의\"}, {\"id\": \"e173\", \"en\": \"signify\", \"pos\": \"[동]\", \"ko\": \"의미하다, 뜻하다 / (행동으로 감정을) 나타내다 / 중요하다\"}, {\"id\": \"e174\", \"en\": \"commonality\", \"pos\": \"[명]\", \"ko\": \"공통성\"}, {\"id\": \"e175\", \"en\": \"asset\", \"pos\": \"[명]\", \"ko\": \"자산(이 되는 사람·물건) / (부동산과 같은) 자산, 재산\"}, {\"id\": \"e176\", \"en\": \"monetary\", \"pos\": \"[형]\", \"ko\": \"통화[화폐]의\"}, {\"id\": \"e177\", \"en\": \"magnitude\", \"pos\": \"[명]\", \"ko\": \"(엄청난) 규모[중요도] / (별의) 광도 / 지진 규모\"}, {\"id\": \"e178\", \"en\": \"accrued\", \"pos\": \"[형]\", \"ko\": \"발생한, (취득했지만) 미수의, (부담했지만) 미불의\"}, {\"id\": \"e179\", \"en\": \"accrued liabilities\", \"pos\": \"[명]\", \"ko\": \"미불부채, 예상부채 (법인 유동부채의 한 항목)\"}, {\"id\": \"e180\", \"en\": \"implicitly\", \"pos\": \"[부사]\", \"ko\": \"함축적으로 / 무조건[절대적]으로\"}, {\"id\": \"e181\", \"en\": \"merit\", \"pos\": \"[명/동]\", \"ko\": \"가치; 훌륭함 / 장점 / 받을 만하다\"}, {\"id\": \"e182\", \"en\": \"pragmatic\", \"pos\": \"[형]\", \"ko\": \"실용적인\"}, {\"id\": \"e183\", \"en\": \"excess\", \"pos\": \"[명/형]\", \"ko\": \"(어떤 정도를) 지나침, 과도, 과잉 / 초과한\"}, {\"id\": \"e184\", \"en\": \"assessment\", \"pos\": \"[명]\", \"ko\": \"평가(한 의견) / 평가 행위 / 평가[사정] 액\"}, {\"id\": \"e185\", \"en\": \"compile\", \"pos\": \"[동]\", \"ko\": \"(여러 출처에서 자료를 따와) 엮다, 편집[편찬]하다\"}, {\"id\": \"e186\", \"en\": \"assertion\", \"pos\": \"[명]\", \"ko\": \"(사실임을) 주장 / (권리 등의) 행사\"}, {\"id\": \"e187\", \"en\": \"phenomenal\", \"pos\": \"[형]\", \"ko\": \"경이적인, 경탄스러운\"}, {\"id\": \"e188\", \"en\": \"dampen\", \"pos\": \"[동]\", \"ko\": \"(물에) 축이다[적시다] / (감정·반응의 기세를) 꺾다[약화시키다]\"}, {\"id\": \"e189\", \"en\": \"focal\", \"pos\": \"[형]\", \"ko\": \"중심의; 초점의\"}, {\"id\": \"e190\", \"en\": \"excerpt\", \"pos\": \"[명]\", \"ko\": \"(글·음악·영화 등의) 발췌[인용] (부분)\"}, {\"id\": \"e191\", \"en\": \"shrift\", \"pos\": \"[명]\", \"ko\": \"고해[참회]; 임종 고해 (short shrift: 냉담한 취급)\"}, {\"id\": \"e192\", \"en\": \"articulation\", \"pos\": \"[명]\", \"ko\": \"(말로 하는) 표현 / 발화; 조음(調音) / 관절\"}, {\"id\": \"e193\", \"en\": \"performance\", \"pos\": \"[명]\", \"ko\": \"공연, 연주회 / 실적, 성과 / (과제의) 수행[실행]\"}, {\"id\": \"e194\", \"en\": \"contemplate\", \"pos\": \"[동]\", \"ko\": \"(어떤 일의 가부나 방법에 대해) 고려하다[생각하다] / 심사숙고하다\"}, {\"id\": \"e195\", \"en\": \"venue\", \"pos\": \"[명]\", \"ko\": \"(콘서트·스포츠 경기·회담 등의) 장소\"}, {\"id\": \"e196\", \"en\": \"hold harmless\", \"pos\": \"[구]\", \"ko\": \"보호하다; (손해가 생겨도) 책임을 면제하다\"}, {\"id\": \"e197\", \"en\": \"coverage\", \"pos\": \"[명]\", \"ko\": \"(신문·텔레비전의) 보도[방송] / (정보의) 범위 / 보급(률)\"}, {\"id\": \"e198\", \"en\": \"exhibit\", \"pos\": \"[동/명]\", \"ko\": \"전시하다 / (감정·특질을) 보이다[드러내다] / 전시품\"}, {\"id\": \"e199\", \"en\": \"statute\", \"pos\": \"[명]\", \"ko\": \"법규, 법령 / (조직·기관의) 규정\"}, {\"id\": \"e200\", \"en\": \"security\", \"pos\": \"[명]\", \"ko\": \"보안, 경비, 안보 / (미래를 위한) 보장 / 담보 / 유가 증권\"}, {\"id\": \"e201\", \"en\": \"term\", \"pos\": \"[명/동]\", \"ko\": \"용어, 말 / 학기 / (지속되는) 기간 / (이름으로) 칭하다\"}, {\"id\": \"e202\", \"en\": \"cessation\", \"pos\": \"[명]\", \"ko\": \"중단, 중지\"}, {\"id\": \"e203\", \"en\": \"award\", \"pos\": \"[명/동]\", \"ko\": \"(부상이 딸린) 상 / 수여하다 / 지급 판정을 내리다\"}, {\"id\": \"e204\", \"en\": \"overhead\", \"pos\": \"[형/명]\", \"ko\": \"(비용이) 간접비의 / 간접비[경비]\"}, {\"id\": \"e205\", \"en\": \"terms\", \"pos\": \"[명]\", \"ko\": \"(합의·계약 등의) 조건 / (지불) 조건, 가격\"}, {\"id\": \"e206\", \"en\": \"release\", \"pos\": \"[동/명]\", \"ko\": \"석방[해방]하다 / (대중에게) 공개[발표]하다 / 발매 음반\"}, {\"id\": \"e207\", \"en\": \"development\", \"pos\": \"[명]\", \"ko\": \"발달, 성장 / (신제품의) 개발 / 새로이 전개된 사건[국면]\"}, {\"id\": \"e208\", \"en\": \"title\", \"pos\": \"[명/동]\", \"ko\": \"제목, 표제 / 칭호, 작위 / (부동산) 소유권\"}, {\"id\": \"e209\", \"en\": \"document\", \"pos\": \"[명/동]\", \"ko\": \"서류, 문서 / (상세한 내용을) 기록하다\"}, {\"id\": \"e210\", \"en\": \"exercise\", \"pos\": \"[명/동]\", \"ko\": \"(신체적) 운동 / (권력·권리 등의) 행사[발휘]하다\"}, {\"id\": \"e211\", \"en\": \"provision\", \"pos\": \"[명]\", \"ko\": \"공급, 제공 / 대비, 준비 / (법률 문서의) 조항[규정]\"}, {\"id\": \"e212\", \"en\": \"current assets\", \"pos\": \"[명]\", \"ko\": \"유동 자산\"}, {\"id\": \"e213\", \"en\": \"stockholder's equity\", \"pos\": \"[명]\", \"ko\": \"(주식회사의) 자본 / 주주지분\"}, {\"id\": \"e214\", \"en\": \"cash equivalents\", \"pos\": \"[명]\", \"ko\": \"현금등가액\"}, {\"id\": \"e215\", \"en\": \"warranty liability\", \"pos\": \"[명]\", \"ko\": \"담보책임\"}, {\"id\": \"e216\", \"en\": \"or otherwise\", \"pos\": \"[구]\", \"ko\": \"(앞에 언급한 것과) 다른 것인지/것이든, 그 반대이든\"}, {\"id\": \"e217\", \"en\": \"wither\", \"pos\": \"[동]\", \"ko\": \"시들다, 말라 죽다 / 약해지다, 시들어 가다\"}, {\"id\": \"e001\", \"en\": \"interim\", \"pos\": \"[형]\", \"ko\": \"중간[임시/과도]의, 잠정적인\"}, {\"id\": \"e002\", \"en\": \"deadlock\", \"pos\": \"[명]\", \"ko\": \"교착 상태, 협상의 막힘\"}, {\"id\": \"e003\", \"en\": \"scheme\", \"pos\": \"[명/동]\", \"ko\": \"(운영) 계획, 제도 / 책략 / 책략을 꾸미다\"}, {\"id\": \"e004\", \"en\": \"stopgap\", \"pos\": \"[명]\", \"ko\": \"임시방편\"}, {\"id\": \"e005\", \"en\": \"tentatively\", \"pos\": \"[부사]\", \"ko\": \"시험[실험]적으로, 망설이며\"}, {\"id\": \"e006\", \"en\": \"repercussion\", \"pos\": \"[명]\", \"ko\": \"(어떤 사건이 초래한) 간접적인 영향\"}, {\"id\": \"e007\", \"en\": \"expedite\", \"pos\": \"[동]\", \"ko\": \"더 신속히 처리하다\"}, {\"id\": \"e008\", \"en\": \"expansionary\", \"pos\": \"[형]\", \"ko\": \"(경제를) 신장시키는\"}, {\"id\": \"e009\", \"en\": \"therapeutics\", \"pos\": \"[명]\", \"ko\": \"치료법, 치료학\"}, {\"id\": \"e010\", \"en\": \"exemption\", \"pos\": \"[명]\", \"ko\": \"면제, (세금) 공제\"}, {\"id\": \"e011\", \"en\": \"endorsement\", \"pos\": \"[명]\", \"ko\": \"(공개적인) 지지 / (유명인의 광고) 보증[홍보]\"}, {\"id\": \"e012\", \"en\": \"lender\", \"pos\": \"[명]\", \"ko\": \"빌려주는 사람, 대출 기관\"}, {\"id\": \"e013\", \"en\": \"amplify\", \"pos\": \"[동]\", \"ko\": \"증폭시키다 / 더 자세히 진술하다\"}, {\"id\": \"e014\", \"en\": \"deterioration\", \"pos\": \"[명]\", \"ko\": \"악화, 가치의 하락, 퇴보\"}, {\"id\": \"e015\", \"en\": \"hinge on\", \"pos\": \"[구동사]\", \"ko\": \"~에 달려있다\"}, {\"id\": \"e016\", \"en\": \"equivalent\", \"pos\": \"[형/명]\", \"ko\": \"(가치·중요도 등이) 동등한[맞먹는] / 등가물\"}, {\"id\": \"e017\", \"en\": \"opt to\", \"pos\": \"[동사구]\", \"ko\": \"~하기로 선택하다\"}, {\"id\": \"e018\", \"en\": \"Cabinet meeting\", \"pos\": \"[명]\", \"ko\": \"각료 회의\"}, {\"id\": \"e019\", \"en\": \"dent\", \"pos\": \"[동/명]\", \"ko\": \"움푹 들어가게 하다 / (자신감 등을) 훼손하다 / 움푹 들어간 곳\"}, {\"id\": \"e020\", \"en\": \"imperative\", \"pos\": \"[형]\", \"ko\": \"반드시 해야 하는, 긴요한 / 위엄 있는\"}, {\"id\": \"e021\", \"en\": \"devious\", \"pos\": \"[형]\", \"ko\": \"정직하지 못한, 기만적인\"}, {\"id\": \"e022\", \"en\": \"satire\", \"pos\": \"[명]\", \"ko\": \"풍자\"}, {\"id\": \"e023\", \"en\": \"recrimination\", \"pos\": \"[명]\", \"ko\": \"(상대방의 비난에 맞서는) 비난, 맞대응\"}, {\"id\": \"e024\", \"en\": \"mollify\", \"pos\": \"[동]\", \"ko\": \"(사람을) 달래다[진정시키다]\"}, {\"id\": \"e025\", \"en\": \"apparatus\", \"pos\": \"[명]\", \"ko\": \"기구, 장치 / (특히 정당·정부의) 조직체[기구]\"}, {\"id\": \"e026\", \"en\": \"legislative\", \"pos\": \"[형]\", \"ko\": \"입법의, 입법부의\"}, {\"id\": \"e027\", \"en\": \"stifle\", \"pos\": \"[동]\", \"ko\": \"(감정 등을) 억누르다, 억압하다 / 숨이 막히다\"}, {\"id\": \"e028\", \"en\": \"accuse of\", \"pos\": \"[동사구]\", \"ko\": \"~의 죄로 고발[고소, 기소]하다\"}, {\"id\": \"e029\", \"en\": \"tainted\", \"pos\": \"[형]\", \"ko\": \"더럽혀진, 썩은, 부패한\"}, {\"id\": \"e030\", \"en\": \"respiratory\", \"pos\": \"[형]\", \"ko\": \"호흡의, 호흡 기관의\"}, {\"id\": \"e031\", \"en\": \"acute\", \"pos\": \"[형]\", \"ko\": \"격심한, 극심한 / (질병이) 급성의 / 예민한\"}, {\"id\": \"e032\", \"en\": \"thuggish\", \"pos\": \"[형]\", \"ko\": \"폭력적인, 난폭한, 암살의\"}, {\"id\": \"e033\", \"en\": \"bungling\", \"pos\": \"[형/명]\", \"ko\": \"서투른 (솜씨)\"}, {\"id\": \"e034\", \"en\": \"accusation\", \"pos\": \"[명]\", \"ko\": \"혐의 제기, 비난 / 고발, 기소\"}, {\"id\": \"e035\", \"en\": \"simmering\", \"pos\": \"[형]\", \"ko\": \"당장이라도 폭발할 것 같은\"}, {\"id\": \"e036\", \"en\": \"reprimand\", \"pos\": \"[동/명]\", \"ko\": \"질책하다 / 질책\"}, {\"id\": \"e037\", \"en\": \"offset\", \"pos\": \"[동]\", \"ko\": \"상쇄[벌충]하다\"}, {\"id\": \"e038\", \"en\": \"inherent\", \"pos\": \"[형]\", \"ko\": \"내재하는\"}, {\"id\": \"e039\", \"en\": \"outlook\", \"pos\": \"[명]\", \"ko\": \"관점, 세계관, 인생관 / (앞날에 대한) 전망\"}, {\"id\": \"e040\", \"en\": \"initiative\", \"pos\": \"[명]\", \"ko\": \"(새로운) 계획 / 진취성, 결단력 / 주도권\"}, {\"id\": \"e041\", \"en\": \"capability\", \"pos\": \"[명]\", \"ko\": \"능력, 역량 / (한 국가의) 능력[힘]\"}, {\"id\": \"e042\", \"en\": \"assess\", \"pos\": \"[동]\", \"ko\": \"(특성·자질 등을) 재다[가늠하다] / 평가하다\"}, {\"id\": \"e043\", \"en\": \"outbreak\", \"pos\": \"[명]\", \"ko\": \"(전쟁·사고·질병 등의) 발생[발발]\"}, {\"id\": \"e044\", \"en\": \"curtail\", \"pos\": \"[동]\", \"ko\": \"축소[삭감/단축]시키다\"}, {\"id\": \"e045\", \"en\": \"elaborate on\", \"pos\": \"[구동사]\", \"ko\": \"~에 대해 상세히 말하다\"}, {\"id\": \"e046\", \"en\": \"quarantine\", \"pos\": \"[명/동]\", \"ko\": \"(전염병 확산을 막기 위한) 격리 / 격리하다\"}, {\"id\": \"e047\", \"en\": \"in terms of\", \"pos\": \"[구]\", \"ko\": \"~면에서, ~에 관하여\"}, {\"id\": \"e048\", \"en\": \"contain\", \"pos\": \"[동]\", \"ko\": \"~이 들어[함유되어] 있다 / (감정을) 억누르다 / 방지하다\"}, {\"id\": \"e049\", \"en\": \"incidence\", \"pos\": \"[명]\", \"ko\": \"(사건 등의) 발생 정도[영향 범위]\"}, {\"id\": \"e050\", \"en\": \"resultant\", \"pos\": \"[형]\", \"ko\": \"(앞에 언급한) 그 결과로 생긴[그에 따른]\"}, {\"id\": \"e051\", \"en\": \"vigilance\", \"pos\": \"[명]\", \"ko\": \"경계, 조심, 각성 (상태)\"}, {\"id\": \"e052\", \"en\": \"amid\", \"pos\": \"[전치사]\", \"ko\": \"(흥분·공포심이 느껴지는) 가운데[중]에 / ~으로 에워싸인\"}, {\"id\": \"e053\", \"en\": \"vulnerable\", \"pos\": \"[형]\", \"ko\": \"(~에) 취약한, 연약한\"}, {\"id\": \"e054\", \"en\": \"prudent\", \"pos\": \"[형]\", \"ko\": \"신중한\"}, {\"id\": \"e055\", \"en\": \"bolster\", \"pos\": \"[동]\", \"ko\": \"북돋우다, 강화[개선]하다\"}, {\"id\": \"e056\", \"en\": \"skew\", \"pos\": \"[동]\", \"ko\": \"왜곡하다 / 비스듬히 움직이다[있다]\"}, {\"id\": \"e057\", \"en\": \"reiterate\", \"pos\": \"[동]\", \"ko\": \"(이미 한 말을, 특히 강조하기 위해) 반복하다[되풀이하다]\"}, {\"id\": \"e058\", \"en\": \"concurrently\", \"pos\": \"[부사]\", \"ko\": \"(~와) 동시에, 함께\"}, {\"id\": \"e059\", \"en\": \"underpin\", \"pos\": \"[동]\", \"ko\": \"(주장 등을) 뒷받침하다 / (벽을) 보강하다\"}, {\"id\": \"e060\", \"en\": \"polarization\", \"pos\": \"[명]\", \"ko\": \"양극화, (정당·의견 등의) 대립\"}, {\"id\": \"e061\", \"en\": \"tackle\", \"pos\": \"[동]\", \"ko\": \"(힘든 문제·상황과) 씨름하다 / 솔직하게 말하다[따지다]\"}, {\"id\": \"e062\", \"en\": \"permeate\", \"pos\": \"[동]\", \"ko\": \"스며들다, 침투하다 / 퍼지다\"}, {\"id\": \"e063\", \"en\": \"discrepancy\", \"pos\": \"[명]\", \"ko\": \"(같아야 할 것들 사이의) 차이[불일치]\"}, {\"id\": \"e064\", \"en\": \"withhold\", \"pos\": \"[동]\", \"ko\": \"(~을) 주지 않다\"}, {\"id\": \"e065\", \"en\": \"explicit\", \"pos\": \"[형]\", \"ko\": \"분명한, 명쾌한 / 솔직한 / 노골적인\"}, {\"id\": \"e066\", \"en\": \"quaint\", \"pos\": \"[형]\", \"ko\": \"(매력 있게) 진기한[예스러운]\"}, {\"id\": \"e067\", \"en\": \"beckon\", \"pos\": \"[동]\", \"ko\": \"(오라고) 손짓하다 / 아주 매력적으로 보이다\"}, {\"id\": \"e068\", \"en\": \"sterile\", \"pos\": \"[형]\", \"ko\": \"불임의 / 살균한 / 아무 소득 없는, 무익한\"}, {\"id\": \"e069\", \"en\": \"strait\", \"pos\": \"[명]\", \"ko\": \"해협 / (특히 경제적인) 궁핍[곤경]\"}, {\"id\": \"e070\", \"en\": \"sabbatical\", \"pos\": \"[명]\", \"ko\": \"안식 기간 (대학 교수가 연구·여행을 하는 기간)\"}, {\"id\": \"e071\", \"en\": \"diagnostic\", \"pos\": \"[형/명]\", \"ko\": \"진단의 / 진단 프로그램\"}, {\"id\": \"e072\", \"en\": \"muddle\", \"pos\": \"[동/명]\", \"ko\": \"헝클어뜨리다 / 혼동하다 / (정신적인) 혼란 상태\"}, {\"id\": \"e073\", \"en\": \"beset\", \"pos\": \"[동]\", \"ko\": \"괴롭히다\"}, {\"id\": \"e074\", \"en\": \"coordination\", \"pos\": \"[명]\", \"ko\": \"조직(화), 합동, 조화 / (신체 동작의) 조정력\"}, {\"id\": \"e075\", \"en\": \"distinction\", \"pos\": \"[명]\", \"ko\": \"(뚜렷한) 차이[대조] / 뛰어남, 탁월함 / 구분, 차별\"}, {\"id\": \"e076\", \"en\": \"distinctive\", \"pos\": \"[형]\", \"ko\": \"독특한\"}, {\"id\": \"e077\", \"en\": \"dysfunctional\", \"pos\": \"[형]\", \"ko\": \"제대로 기능을 하지 않는, 고장난\"}, {\"id\": \"e078\", \"en\": \"hoard\", \"pos\": \"[명/동]\", \"ko\": \"(비밀 장소에 모아 놓은) 비축[저장]물 / 비축하다\"}, {\"id\": \"e079\", \"en\": \"secrecy\", \"pos\": \"[명]\", \"ko\": \"비밀 유지[엄수]; 비밀(인 상태)\"}, {\"id\": \"e080\", \"en\": \"ambiguity\", \"pos\": \"[명]\", \"ko\": \"애매성, 애매모호함 / 애매모호한 말\"}, {\"id\": \"e081\", \"en\": \"ramble on\", \"pos\": \"[구동사]\", \"ko\": \"장황하게 이야기하다\"}, {\"id\": \"e082\", \"en\": \"corrective\", \"pos\": \"[형/명]\", \"ko\": \"(잘못된 것을) 바로잡는[수정/교정의] / 수정[교정]하는 것\"}, {\"id\": \"e083\", \"en\": \"procure\", \"pos\": \"[동]\", \"ko\": \"(특히 어렵게) 구하다[입수하다]\"}, {\"id\": \"e084\", \"en\": \"rectify\", \"pos\": \"[동]\", \"ko\": \"(잘못된 것을) 바로잡다\"}, {\"id\": \"e085\", \"en\": \"imperfection\", \"pos\": \"[명]\", \"ko\": \"미비점, 결함\"}, {\"id\": \"e086\", \"en\": \"equilibrium\", \"pos\": \"[명]\", \"ko\": \"평형[균형] (상태) / (마음의) 평정\"}, {\"id\": \"e087\", \"en\": \"turbulence\", \"pos\": \"[명]\", \"ko\": \"격동, 격변 / (물·공기의) 난류, 난기류\"}, {\"id\": \"e088\", \"en\": \"embryonic\", \"pos\": \"[형]\", \"ko\": \"초기의 / 배아의\"}, {\"id\": \"e089\", \"en\": \"irrespective of\", \"pos\": \"[전치사]\", \"ko\": \"~와 관계[상관]없이\"}, {\"id\": \"e090\", \"en\": \"conversion\", \"pos\": \"[명]\", \"ko\": \"전환, 개조 / 개종, 전향\"}, {\"id\": \"e091\", \"en\": \"derivative\", \"pos\": \"[명/형]\", \"ko\": \"파생어, 파생물 / 다른 것을 본뜬, 새롭지 않은\"}, {\"id\": \"e092\", \"en\": \"infringement\", \"pos\": \"[명]\", \"ko\": \"(법규) 위반, 위배 / (특허권·판권의) 침해\"}, {\"id\": \"e093\", \"en\": \"deputy\", \"pos\": \"[명]\", \"ko\": \"부-[대행/대리인] / (일부 국가의) 의원, 국회의원\"}, {\"id\": \"e094\", \"en\": \"legislator\", \"pos\": \"[명]\", \"ko\": \"입법자, 국회[의회]의원\"}, {\"id\": \"e095\", \"en\": \"finalize\", \"pos\": \"[동]\", \"ko\": \"마무리짓다, 완결하다\"}, {\"id\": \"e096\", \"en\": \"agility\", \"pos\": \"[명]\", \"ko\": \"민첩; 명민함\"}, {\"id\": \"e097\", \"en\": \"leverage\", \"pos\": \"[명]\", \"ko\": \"영향력 / 지렛대 사용; 지렛대의 힘\"}, {\"id\": \"e098\", \"en\": \"accreditation\", \"pos\": \"[명]\", \"ko\": \"승인, 인가\"}, {\"id\": \"e099\", \"en\": \"generic\", \"pos\": \"[형]\", \"ko\": \"포괄적인, 총칭[통칭]의 / 일반 명칭으로 판매되는\"}, {\"id\": \"e100\", \"en\": \"immense\", \"pos\": \"[형]\", \"ko\": \"엄청난, 어마어마한\"}, {\"id\": \"e101\", \"en\": \"decent\", \"pos\": \"[형]\", \"ko\": \"(수준·질이) 괜찮은[제대로 된] / 품위 있는, 예의 바른\"}, {\"id\": \"e102\", \"en\": \"exacerbate\", \"pos\": \"[동]\", \"ko\": \"(특히 질병·문제를) 악화시키다\"}, {\"id\": \"e103\", \"en\": \"default\", \"pos\": \"[명/동]\", \"ko\": \"채무 불이행, 디폴트 / (채무를) 이행하지 않다\"}, {\"id\": \"e104\", \"en\": \"conversely\", \"pos\": \"[부사]\", \"ko\": \"정반대로, 역으로\"}, {\"id\": \"e105\", \"en\": \"circumvent\", \"pos\": \"[동]\", \"ko\": \"(어려움이나 법 등을) 피하다[면하다]\"}, {\"id\": \"e106\", \"en\": \"retaliation\", \"pos\": \"[명]\", \"ko\": \"보복, 앙갚음\"}, {\"id\": \"e107\", \"en\": \"complement\", \"pos\": \"[동/명]\", \"ko\": \"보완하다 / 보완물, 금상첨화격 요소\"}, {\"id\": \"e108\", \"en\": \"convergence\", \"pos\": \"[명]\", \"ko\": \"한 점으로 집합함, 집중성 / [수학] 수렴\"}, {\"id\": \"e109\", \"en\": \"encompass\", \"pos\": \"[동]\", \"ko\": \"(많은 것을) 포함[망라]하다, 아우르다\"}, {\"id\": \"e110\", \"en\": \"illuminating\", \"pos\": \"[형]\", \"ko\": \"이해를 돕는, 분명하게 하는\"}, {\"id\": \"e111\", \"en\": \"hedge\", \"pos\": \"[명/동]\", \"ko\": \"생울타리 / (손실을 막기 위한) 대비책 / 얼버무리다\"}, {\"id\": \"e112\", \"en\": \"signpost\", \"pos\": \"[명/동]\", \"ko\": \"(도로) 표지판, 이정표 / (주장·연설의) 방향을 제시하다\"}, {\"id\": \"e113\", \"en\": \"intervene\", \"pos\": \"[동]\", \"ko\": \"(상황 개선을 돕기 위해) 개입하다 / 끼어들다[가로막다]\"}, {\"id\": \"e114\", \"en\": \"relinquish\", \"pos\": \"[동]\", \"ko\": \"(특히 마지못해 소유권 등을) 포기하다[내주다]\"}, {\"id\": \"e115\", \"en\": \"metaphor\", \"pos\": \"[명]\", \"ko\": \"은유, 비유\"}, {\"id\": \"e116\", \"en\": \"stave off\", \"pos\": \"[구동사]\", \"ko\": \"비키다, 피하다, 간신히 모면하다\"}, {\"id\": \"e117\", \"en\": \"outset\", \"pos\": \"[명]\", \"ko\": \"착수, 시초, 발단\"}, {\"id\": \"e118\", \"en\": \"paramount\", \"pos\": \"[형]\", \"ko\": \"다른 무엇보다[가장] 중요한 / (지위·권력이) 최고의\"}, {\"id\": \"e119\", \"en\": \"implicit\", \"pos\": \"[형]\", \"ko\": \"암시된, 내포된 / 절대적인, 무조건적인\"}, {\"id\": \"e120\", \"en\": \"detriment\", \"pos\": \"[명]\", \"ko\": \"손상(을 초래하는 것)\"}, {\"id\": \"e121\", \"en\": \"avenue\", \"pos\": \"[명]\", \"ko\": \"(도시의) 거리 / 진입 도로 / (나아갈) 길, 방안\"}, {\"id\": \"e122\", \"en\": \"insofar\", \"pos\": \"[부사]\", \"ko\": \"~하는 한에 있어서는\"}, {\"id\": \"e123\", \"en\": \"plummet\", \"pos\": \"[동]\", \"ko\": \"곤두박질치다, 급락하다\"}, {\"id\": \"e124\", \"en\": \"emergent\", \"pos\": \"[형]\", \"ko\": \"신생의, 신흥의\"}, {\"id\": \"e125\", \"en\": \"obscure\", \"pos\": \"[형/동]\", \"ko\": \"잘 알려져 있지 않은, 무명의 / 이해하기 힘든 / 모호하게 하다\"}, {\"id\": \"e126\", \"en\": \"premise\", \"pos\": \"[명]\", \"ko\": \"(주장의) 전제\"}, {\"id\": \"e127\", \"en\": \"overriding\", \"pos\": \"[형]\", \"ko\": \"다른 무엇보다 더 중요한, 최우선시 되는\"}, {\"id\": \"e128\", \"en\": \"tumble\", \"pos\": \"[동/명]\", \"ko\": \"굴러 떨어지다 / 폭삭 무너지다 / 폭락, 빠른 하락\"}, {\"id\": \"e129\", \"en\": \"appreciation\", \"pos\": \"[명]\", \"ko\": \"감탄, 감상 / 감사 / 가치 상승\"}, {\"id\": \"e130\", \"en\": \"obsolete\", \"pos\": \"[형]\", \"ko\": \"더 이상 쓸모가 없는, 한물간, 구식의\"}, {\"id\": \"e131\", \"en\": \"staggering\", \"pos\": \"[형]\", \"ko\": \"(너무 엄청나서) 충격적인, 믿기 어려운\"}, {\"id\": \"e132\", \"en\": \"pitfall\", \"pos\": \"[명]\", \"ko\": \"(눈에 잘 안 띄는) 위험[곤란]\"}, {\"id\": \"e133\", \"en\": \"overhaul\", \"pos\": \"[명/동]\", \"ko\": \"(기계·시스템의) 점검[정비] / 점검[정비]하다 / 앞지르다\"}, {\"id\": \"e134\", \"en\": \"governance\", \"pos\": \"[명]\", \"ko\": \"통치, 관리; 통치[관리] 방식\"}, {\"id\": \"e135\", \"en\": \"backwater\", \"pos\": \"[명]\", \"ko\": \"(강의 잔잔한) 후미 / (발전·변화의 영향을 덜 받는) 후미진 곳\"}, {\"id\": \"e136\", \"en\": \"readership\", \"pos\": \"[명]\", \"ko\": \"(특정 신문·잡지의) 독자 수[층]\"}, {\"id\": \"e137\", \"en\": \"circumscribe\", \"pos\": \"[동]\", \"ko\": \"(권리·자유 등을) 제한[억제]하다\"}, {\"id\": \"e138\", \"en\": \"apprehensive\", \"pos\": \"[형]\", \"ko\": \"걱정되는, 불안한\"}, {\"id\": \"e139\", \"en\": \"aptitude\", \"pos\": \"[명]\", \"ko\": \"소질, 적성\"}, {\"id\": \"e140\", \"en\": \"commensurate\", \"pos\": \"[형]\", \"ko\": \"(크기·중요도·자질 등에) 어울리는[상응하는]\"}, {\"id\": \"e141\", \"en\": \"onward\", \"pos\": \"[형]\", \"ko\": \"앞으로[계속 이어서] 나아가는\"}, {\"id\": \"e142\", \"en\": \"capitalize\", \"pos\": \"[동]\", \"ko\": \"대문자로 쓰다 / 자본화하다 / 출자하다\"}, {\"id\": \"e143\", \"en\": \"manifestation\", \"pos\": \"[명]\", \"ko\": \"(어떤 것이 존재하거나 일어나고 있음을 보여주는) 징후[표명]\"}, {\"id\": \"e144\", \"en\": \"concrete\", \"pos\": \"[형/명]\", \"ko\": \"콘크리트로 된 / 사실에 의거한, 구체적인 / 콘크리트\"}, {\"id\": \"e145\", \"en\": \"wither\", \"pos\": \"[동]\", \"ko\": \"시들다, 말라 죽다 / 약해지다, 시들어 가다\"}, {\"id\": \"e146\", \"en\": \"waiver\", \"pos\": \"[명]\", \"ko\": \"(권리 등의) 포기; 포기 서류\"}, {\"id\": \"e147\", \"en\": \"assign\", \"pos\": \"[동]\", \"ko\": \"(일·책임 등을) 맡기다[배정하다] / 선임하다 / 양도하다\"}, {\"id\": \"e148\", \"en\": \"grant\", \"pos\": \"[동/명]\", \"ko\": \"(공식·법적으로) 승인[허락]하다 / (내키지 않지만) 인정하다 / 보조금\"}, {\"id\": \"e149\", \"en\": \"constitute\", \"pos\": \"[동]\", \"ko\": \"~이 되는 것으로 여겨지다 / ~을 구성하다[이루다]\"}, {\"id\": \"e150\", \"en\": \"subsequent to\", \"pos\": \"[전치사]\", \"ko\": \"~ 다음에[뒤에]\"}, {\"id\": \"e151\", \"en\": \"duly\", \"pos\": \"[부사]\", \"ko\": \"적절한 절차에 따라, 예상대로 / 적절한 때에\"}, {\"id\": \"e152\", \"en\": \"supersede\", \"pos\": \"[동]\", \"ko\": \"대신하다, 대체하다\"}, {\"id\": \"e153\", \"en\": \"counterpart\", \"pos\": \"[명]\", \"ko\": \"(다른 상황에서 동일한 지위나 기능을 갖는) 상대, 대응 관계에 있는 사람[것]\"}, {\"id\": \"e154\", \"en\": \"construe\", \"pos\": \"[동]\", \"ko\": \"~을 (~으로) 이해[해석]하다\"}, {\"id\": \"e155\", \"en\": \"remedy\", \"pos\": \"[명/동]\", \"ko\": \"처리 방안, 해결[개선]책 / 치료(약) / 바로잡다\"}, {\"id\": \"e156\", \"en\": \"proprietary\", \"pos\": \"[형]\", \"ko\": \"등록[전매] 상표가 붙은 / 소유주[자]의\"}, {\"id\": \"e157\", \"en\": \"amendment\", \"pos\": \"[명]\", \"ko\": \"(법 등의) 개정[수정] / 미국 헌법 수정 조항\"}, {\"id\": \"e158\", \"en\": \"sabotage\", \"pos\": \"[명/동]\", \"ko\": \"사보타주, (고의적인) 방해 행위 / 방해하다\"}, {\"id\": \"e159\", \"en\": \"jurisdiction\", \"pos\": \"[명]\", \"ko\": \"관할권; 사법권 / 관할 구역\"}, {\"id\": \"e160\", \"en\": \"ombudsman\", \"pos\": \"[명]\", \"ko\": \"옴부즈맨, 행정감찰관 (시민의 고충 처리를 담당하는 공무원)\"}, {\"id\": \"e161\", \"en\": \"memorandum\", \"pos\": \"[명]\", \"ko\": \"(아직 정식으로 서명되지 않은) 각서 / (특정 주제에 대한) 제안서[보고서]\"}, {\"id\": \"e162\", \"en\": \"indigenization\", \"pos\": \"[명]\", \"ko\": \"현지 (기업) 우선, 현지인 우선 채용\"}, {\"id\": \"e163\", \"en\": \"abbreviation\", \"pos\": \"[명]\", \"ko\": \"(~의) 축약형 / 축약\"}, {\"id\": \"e164\", \"en\": \"write-off\", \"pos\": \"[명]\", \"ko\": \"(부채) 탕감 / 폐차 처리 / 공치는 시간\"}, {\"id\": \"e165\", \"en\": \"articulate\", \"pos\": \"[동/형]\", \"ko\": \"(생각·감정을) 분명히 표현하다 / 또렷이 말하다 / 잘 표현하는\"}, {\"id\": \"e166\", \"en\": \"presence\", \"pos\": \"[명]\", \"ko\": \"(특정한 곳에) 있음, 존재(함) / 주둔군 / 존재감\"}, {\"id\": \"e167\", \"en\": \"backdrop\", \"pos\": \"[명]\", \"ko\": \"(무대의) 배경(막) / (사건의) 배경[환경]\"}, {\"id\": \"e168\", \"en\": \"clamp\", \"pos\": \"[동/명]\", \"ko\": \"죔쇠로 고정시키다 / 꽉 물다[잡다] / 죔쇠\"}, {\"id\": \"e169\", \"en\": \"intuitive\", \"pos\": \"[형]\", \"ko\": \"직감[직관]에 의한 / 이해하기[사용하기] 쉬운\"}, {\"id\": \"e170\", \"en\": \"aspect\", \"pos\": \"[명]\", \"ko\": \"측면, 양상 / (건물·땅의) 방향\"}, {\"id\": \"e171\", \"en\": \"incorporate\", \"pos\": \"[동]\", \"ko\": \"(일부로) 포함하다 / (법인체를) 설립[창립]하다\"}, {\"id\": \"e172\", \"en\": \"hypothetical\", \"pos\": \"[형]\", \"ko\": \"가상적인, 가설[가정]의\"}, {\"id\": \"e173\", \"en\": \"signify\", \"pos\": \"[동]\", \"ko\": \"의미하다, 뜻하다 / (행동으로 감정을) 나타내다 / 중요하다\"}, {\"id\": \"e174\", \"en\": \"commonality\", \"pos\": \"[명]\", \"ko\": \"공통성\"}, {\"id\": \"e175\", \"en\": \"asset\", \"pos\": \"[명]\", \"ko\": \"자산(이 되는 사람·물건) / (부동산과 같은) 자산, 재산\"}, {\"id\": \"e176\", \"en\": \"monetary\", \"pos\": \"[형]\", \"ko\": \"통화[화폐]의\"}, {\"id\": \"e177\", \"en\": \"magnitude\", \"pos\": \"[명]\", \"ko\": \"(엄청난) 규모[중요도] / (별의) 광도 / 지진 규모\"}, {\"id\": \"e178\", \"en\": \"accrued\", \"pos\": \"[형]\", \"ko\": \"발생한, (취득했지만) 미수의, (부담했지만) 미불의\"}, {\"id\": \"e179\", \"en\": \"accrued liabilities\", \"pos\": \"[명]\", \"ko\": \"미불부채, 예상부채 (법인 유동부채의 한 항목)\"}, {\"id\": \"e180\", \"en\": \"implicitly\", \"pos\": \"[부사]\", \"ko\": \"함축적으로 / 무조건[절대적]으로\"}, {\"id\": \"e181\", \"en\": \"merit\", \"pos\": \"[명/동]\", \"ko\": \"가치; 훌륭함 / 장점 / 받을 만하다\"}, {\"id\": \"e182\", \"en\": \"pragmatic\", \"pos\": \"[형]\", \"ko\": \"실용적인\"}, {\"id\": \"e183\", \"en\": \"excess\", \"pos\": \"[명/형]\", \"ko\": \"(어떤 정도를) 지나침, 과도, 과잉 / 초과한\"}, {\"id\": \"e184\", \"en\": \"assessment\", \"pos\": \"[명]\", \"ko\": \"평가(한 의견) / 평가 행위 / 평가[사정] 액\"}, {\"id\": \"e185\", \"en\": \"compile\", \"pos\": \"[동]\", \"ko\": \"(여러 출처에서 자료를 따와) 엮다, 편집[편찬]하다\"}, {\"id\": \"e186\", \"en\": \"assertion\", \"pos\": \"[명]\", \"ko\": \"(사실임을) 주장 / (권리 등의) 행사\"}, {\"id\": \"e187\", \"en\": \"phenomenal\", \"pos\": \"[형]\", \"ko\": \"경이적인, 경탄스러운\"}, {\"id\": \"e188\", \"en\": \"dampen\", \"pos\": \"[동]\", \"ko\": \"(물에) 축이다[적시다] / (감정·반응의 기세를) 꺾다[약화시키다]\"}, {\"id\": \"e189\", \"en\": \"focal\", \"pos\": \"[형]\", \"ko\": \"중심의; 초점의\"}, {\"id\": \"e190\", \"en\": \"excerpt\", \"pos\": \"[명]\", \"ko\": \"(글·음악·영화 등의) 발췌[인용] (부분)\"}, {\"id\": \"e191\", \"en\": \"shrift\", \"pos\": \"[명]\", \"ko\": \"고해[참회]; 임종 고해 (short shrift: 냉담한 취급)\"}, {\"id\": \"e192\", \"en\": \"articulation\", \"pos\": \"[명]\", \"ko\": \"(말로 하는) 표현 / 발화; 조음(調音) / 관절\"}, {\"id\": \"e193\", \"en\": \"performance\", \"pos\": \"[명]\", \"ko\": \"공연, 연주회 / 실적, 성과 / (과제의) 수행[실행]\"}, {\"id\": \"e194\", \"en\": \"contemplate\", \"pos\": \"[동]\", \"ko\": \"(어떤 일의 가부나 방법에 대해) 고려하다[생각하다] / 심사숙고하다\"}, {\"id\": \"e195\", \"en\": \"venue\", \"pos\": \"[명]\", \"ko\": \"(콘서트·스포츠 경기·회담 등의) 장소\"}, {\"id\": \"e196\", \"en\": \"hold harmless\", \"pos\": \"[구]\", \"ko\": \"보호하다; (손해가 생겨도) 책임을 면제하다\"}, {\"id\": \"e197\", \"en\": \"coverage\", \"pos\": \"[명]\", \"ko\": \"(신문·텔레비전의) 보도[방송] / (정보의) 범위 / 보급(률)\"}, {\"id\": \"e198\", \"en\": \"exhibit\", \"pos\": \"[동/명]\", \"ko\": \"전시하다 / (감정·특질을) 보이다[드러내다] / 전시품\"}, {\"id\": \"e199\", \"en\": \"statute\", \"pos\": \"[명]\", \"ko\": \"법규, 법령 / (조직·기관의) 규정\"}, {\"id\": \"e200\", \"en\": \"security\", \"pos\": \"[명]\", \"ko\": \"보안, 경비, 안보 / (미래를 위한) 보장 / 담보 / 유가 증권\"}, {\"id\": \"e201\", \"en\": \"term\", \"pos\": \"[명/동]\", \"ko\": \"용어, 말 / 학기 / (지속되는) 기간 / (이름으로) 칭하다\"}, {\"id\": \"e202\", \"en\": \"cessation\", \"pos\": \"[명]\", \"ko\": \"중단, 중지\"}, {\"id\": \"e203\", \"en\": \"award\", \"pos\": \"[명/동]\", \"ko\": \"(부상이 딸린) 상 / 수여하다 / 지급 판정을 내리다\"}, {\"id\": \"e204\", \"en\": \"overhead\", \"pos\": \"[형/명]\", \"ko\": \"(비용이) 간접비의 / 간접비[경비]\"}, {\"id\": \"e205\", \"en\": \"terms\", \"pos\": \"[명]\", \"ko\": \"(합의·계약 등의) 조건 / (지불) 조건, 가격\"}, {\"id\": \"e206\", \"en\": \"release\", \"pos\": \"[동/명]\", \"ko\": \"석방[해방]하다 / (대중에게) 공개[발표]하다 / 발매 음반\"}, {\"id\": \"e207\", \"en\": \"development\", \"pos\": \"[명]\", \"ko\": \"발달, 성장 / (신제품의) 개발 / 새로이 전개된 사건[국면]\"}, {\"id\": \"e208\", \"en\": \"title\", \"pos\": \"[명/동]\", \"ko\": \"제목, 표제 / 칭호, 작위 / (부동산) 소유권\"}, {\"id\": \"e209\", \"en\": \"document\", \"pos\": \"[명/동]\", \"ko\": \"서류, 문서 / (상세한 내용을) 기록하다\"}, {\"id\": \"e210\", \"en\": \"exercise\", \"pos\": \"[명/동]\", \"ko\": \"(신체적) 운동 / (권력·권리 등의) 행사[발휘]하다\"}, {\"id\": \"e211\", \"en\": \"provision\", \"pos\": \"[명]\", \"ko\": \"공급, 제공 / 대비, 준비 / (법률 문서의) 조항[규정]\"}, {\"id\": \"e212\", \"en\": \"current assets\", \"pos\": \"[명]\", \"ko\": \"유동 자산\"}, {\"id\": \"e213\", \"en\": \"stockholder's equity\", \"pos\": \"[명]\", \"ko\": \"(주식회사의) 자본 / 주주지분\"}, {\"id\": \"e214\", \"en\": \"cash equivalents\", \"pos\": \"[명]\", \"ko\": \"현금등가액\"}, {\"id\": \"e215\", \"en\": \"warranty liability\", \"pos\": \"[명]\", \"ko\": \"담보책임\"}, {\"id\": \"e216\", \"en\": \"or otherwise\", \"pos\": \"[구]\", \"ko\": \"(앞에 언급한 것과) 다른 것인지/것이든, 그 반대이든\"}, {\"id\": \"e217\", \"en\": \"wither\", \"pos\": \"[동]\", \"ko\": \"시들다, 말라 죽다 / 약해지다, 시들어 가다\"}, {\"id\": \"e001\", \"en\": \"interim\", \"pos\": \"[형]\", \"ko\": \"중간[임시/과도]의, 잠정적인\"}, {\"id\": \"e002\", \"en\": \"deadlock\", \"pos\": \"[명]\", \"ko\": \"교착 상태, 협상의 막힘\"}, {\"id\": \"e003\", \"en\": \"scheme\", \"pos\": \"[명/동]\", \"ko\": \"(운영) 계획, 제도 / 책략 / 책략을 꾸미다\"}, {\"id\": \"e004\", \"en\": \"stopgap\", \"pos\": \"[명]\", \"ko\": \"임시방편\"}, {\"id\": \"e005\", \"en\": \"tentatively\", \"pos\": \"[부사]\", \"ko\": \"시험[실험]적으로, 망설이며\"}, {\"id\": \"e006\", \"en\": \"repercussion\", \"pos\": \"[명]\", \"ko\": \"(어떤 사건이 초래한) 간접적인 영향\"}, {\"id\": \"e007\", \"en\": \"expedite\", \"pos\": \"[동]\", \"ko\": \"더 신속히 처리하다\"}, {\"id\": \"e008\", \"en\": \"expansionary\", \"pos\": \"[형]\", \"ko\": \"(경제를) 신장시키는\"}, {\"id\": \"e009\", \"en\": \"therapeutics\", \"pos\": \"[명]\", \"ko\": \"치료법, 치료학\"}, {\"id\": \"e010\", \"en\": \"exemption\", \"pos\": \"[명]\", \"ko\": \"면제, (세금) 공제\"}, {\"id\": \"e011\", \"en\": \"endorsement\", \"pos\": \"[명]\", \"ko\": \"(공개적인) 지지 / (유명인의 광고) 보증[홍보]\"}, {\"id\": \"e012\", \"en\": \"lender\", \"pos\": \"[명]\", \"ko\": \"빌려주는 사람, 대출 기관\"}, {\"id\": \"e013\", \"en\": \"amplify\", \"pos\": \"[동]\", \"ko\": \"증폭시키다 / 더 자세히 진술하다\"}, {\"id\": \"e014\", \"en\": \"deterioration\", \"pos\": \"[명]\", \"ko\": \"악화, 가치의 하락, 퇴보\"}, {\"id\": \"e015\", \"en\": \"hinge on\", \"pos\": \"[구동사]\", \"ko\": \"~에 달려있다\"}, {\"id\": \"e016\", \"en\": \"equivalent\", \"pos\": \"[형/명]\", \"ko\": \"(가치·중요도 등이) 동등한[맞먹는] / 등가물\"}, {\"id\": \"e017\", \"en\": \"opt to\", \"pos\": \"[동사구]\", \"ko\": \"~하기로 선택하다\"}, {\"id\": \"e018\", \"en\": \"Cabinet meeting\", \"pos\": \"[명]\", \"ko\": \"각료 회의\"}, {\"id\": \"e019\", \"en\": \"dent\", \"pos\": \"[동/명]\", \"ko\": \"움푹 들어가게 하다 / (자신감 등을) 훼손하다 / 움푹 들어간 곳\"}, {\"id\": \"e020\", \"en\": \"imperative\", \"pos\": \"[형]\", \"ko\": \"반드시 해야 하는, 긴요한 / 위엄 있는\"}, {\"id\": \"e021\", \"en\": \"devious\", \"pos\": \"[형]\", \"ko\": \"정직하지 못한, 기만적인\"}, {\"id\": \"e022\", \"en\": \"satire\", \"pos\": \"[명]\", \"ko\": \"풍자\"}, {\"id\": \"e023\", \"en\": \"recrimination\", \"pos\": \"[명]\", \"ko\": \"(상대방의 비난에 맞서는) 비난, 맞대응\"}, {\"id\": \"e024\", \"en\": \"mollify\", \"pos\": \"[동]\", \"ko\": \"(사람을) 달래다[진정시키다]\"}, {\"id\": \"e025\", \"en\": \"apparatus\", \"pos\": \"[명]\", \"ko\": \"기구, 장치 / (특히 정당·정부의) 조직체[기구]\"}, {\"id\": \"e026\", \"en\": \"legislative\", \"pos\": \"[형]\", \"ko\": \"입법의, 입법부의\"}, {\"id\": \"e027\", \"en\": \"stifle\", \"pos\": \"[동]\", \"ko\": \"(감정 등을) 억누르다, 억압하다 / 숨이 막히다\"}, {\"id\": \"e028\", \"en\": \"accuse of\", \"pos\": \"[동사구]\", \"ko\": \"~의 죄로 고발[고소, 기소]하다\"}, {\"id\": \"e029\", \"en\": \"tainted\", \"pos\": \"[형]\", \"ko\": \"더럽혀진, 썩은, 부패한\"}, {\"id\": \"e030\", \"en\": \"respiratory\", \"pos\": \"[형]\", \"ko\": \"호흡의, 호흡 기관의\"}, {\"id\": \"e031\", \"en\": \"acute\", \"pos\": \"[형]\", \"ko\": \"격심한, 극심한 / (질병이) 급성의 / 예민한\"}, {\"id\": \"e032\", \"en\": \"thuggish\", \"pos\": \"[형]\", \"ko\": \"폭력적인, 난폭한, 암살의\"}, {\"id\": \"e033\", \"en\": \"bungling\", \"pos\": \"[형/명]\", \"ko\": \"서투른 (솜씨)\"}, {\"id\": \"e034\", \"en\": \"accusation\", \"pos\": \"[명]\", \"ko\": \"혐의 제기, 비난 / 고발, 기소\"}, {\"id\": \"e035\", \"en\": \"simmering\", \"pos\": \"[형]\", \"ko\": \"당장이라도 폭발할 것 같은\"}, {\"id\": \"e036\", \"en\": \"reprimand\", \"pos\": \"[동/명]\", \"ko\": \"질책하다 / 질책\"}, {\"id\": \"e037\", \"en\": \"offset\", \"pos\": \"[동]\", \"ko\": \"상쇄[벌충]하다\"}, {\"id\": \"e038\", \"en\": \"inherent\", \"pos\": \"[형]\", \"ko\": \"내재하는\"}, {\"id\": \"e039\", \"en\": \"outlook\", \"pos\": \"[명]\", \"ko\": \"관점, 세계관, 인생관 / (앞날에 대한) 전망\"}, {\"id\": \"e040\", \"en\": \"initiative\", \"pos\": \"[명]\", \"ko\": \"(새로운) 계획 / 진취성, 결단력 / 주도권\"}, {\"id\": \"e041\", \"en\": \"capability\", \"pos\": \"[명]\", \"ko\": \"능력, 역량 / (한 국가의) 능력[힘]\"}, {\"id\": \"e042\", \"en\": \"assess\", \"pos\": \"[동]\", \"ko\": \"(특성·자질 등을) 재다[가늠하다] / 평가하다\"}, {\"id\": \"e043\", \"en\": \"outbreak\", \"pos\": \"[명]\", \"ko\": \"(전쟁·사고·질병 등의) 발생[발발]\"}, {\"id\": \"e044\", \"en\": \"curtail\", \"pos\": \"[동]\", \"ko\": \"축소[삭감/단축]시키다\"}, {\"id\": \"e045\", \"en\": \"elaborate on\", \"pos\": \"[구동사]\", \"ko\": \"~에 대해 상세히 말하다\"}, {\"id\": \"e046\", \"en\": \"quarantine\", \"pos\": \"[명/동]\", \"ko\": \"(전염병 확산을 막기 위한) 격리 / 격리하다\"}, {\"id\": \"e047\", \"en\": \"in terms of\", \"pos\": \"[구]\", \"ko\": \"~면에서, ~에 관하여\"}, {\"id\": \"e048\", \"en\": \"contain\", \"pos\": \"[동]\", \"ko\": \"~이 들어[함유되어] 있다 / (감정을) 억누르다 / 방지하다\"}, {\"id\": \"e049\", \"en\": \"incidence\", \"pos\": \"[명]\", \"ko\": \"(사건 등의) 발생 정도[영향 범위]\"}, {\"id\": \"e050\", \"en\": \"resultant\", \"pos\": \"[형]\", \"ko\": \"(앞에 언급한) 그 결과로 생긴[그에 따른]\"}, {\"id\": \"e051\", \"en\": \"vigilance\", \"pos\": \"[명]\", \"ko\": \"경계, 조심, 각성 (상태)\"}, {\"id\": \"e052\", \"en\": \"amid\", \"pos\": \"[전치사]\", \"ko\": \"(흥분·공포심이 느껴지는) 가운데[중]에 / ~으로 에워싸인\"}, {\"id\": \"e053\", \"en\": \"vulnerable\", \"pos\": \"[형]\", \"ko\": \"(~에) 취약한, 연약한\"}, {\"id\": \"e054\", \"en\": \"prudent\", \"pos\": \"[형]\", \"ko\": \"신중한\"}, {\"id\": \"e055\", \"en\": \"bolster\", \"pos\": \"[동]\", \"ko\": \"북돋우다, 강화[개선]하다\"}, {\"id\": \"e056\", \"en\": \"skew\", \"pos\": \"[동]\", \"ko\": \"왜곡하다 / 비스듬히 움직이다[있다]\"}, {\"id\": \"e057\", \"en\": \"reiterate\", \"pos\": \"[동]\", \"ko\": \"(이미 한 말을, 특히 강조하기 위해) 반복하다[되풀이하다]\"}, {\"id\": \"e058\", \"en\": \"concurrently\", \"pos\": \"[부사]\", \"ko\": \"(~와) 동시에, 함께\"}, {\"id\": \"e059\", \"en\": \"underpin\", \"pos\": \"[동]\", \"ko\": \"(주장 등을) 뒷받침하다 / (벽을) 보강하다\"}, {\"id\": \"e060\", \"en\": \"polarization\", \"pos\": \"[명]\", \"ko\": \"양극화, (정당·의견 등의) 대립\"}, {\"id\": \"e061\", \"en\": \"tackle\", \"pos\": \"[동]\", \"ko\": \"(힘든 문제·상황과) 씨름하다 / 솔직하게 말하다[따지다]\"}, {\"id\": \"e062\", \"en\": \"permeate\", \"pos\": \"[동]\", \"ko\": \"스며들다, 침투하다 / 퍼지다\"}, {\"id\": \"e063\", \"en\": \"discrepancy\", \"pos\": \"[명]\", \"ko\": \"(같아야 할 것들 사이의) 차이[불일치]\"}, {\"id\": \"e064\", \"en\": \"withhold\", \"pos\": \"[동]\", \"ko\": \"(~을) 주지 않다\"}, {\"id\": \"e065\", \"en\": \"explicit\", \"pos\": \"[형]\", \"ko\": \"분명한, 명쾌한 / 솔직한 / 노골적인\"}, {\"id\": \"e066\", \"en\": \"quaint\", \"pos\": \"[형]\", \"ko\": \"(매력 있게) 진기한[예스러운]\"}, {\"id\": \"e067\", \"en\": \"beckon\", \"pos\": \"[동]\", \"ko\": \"(오라고) 손짓하다 / 아주 매력적으로 보이다\"}, {\"id\": \"e068\", \"en\": \"sterile\", \"pos\": \"[형]\", \"ko\": \"불임의 / 살균한 / 아무 소득 없는, 무익한\"}, {\"id\": \"e069\", \"en\": \"strait\", \"pos\": \"[명]\", \"ko\": \"해협 / (특히 경제적인) 궁핍[곤경]\"}, {\"id\": \"e070\", \"en\": \"sabbatical\", \"pos\": \"[명]\", \"ko\": \"안식 기간 (대학 교수가 연구·여행을 하는 기간)\"}, {\"id\": \"e071\", \"en\": \"diagnostic\", \"pos\": \"[형/명]\", \"ko\": \"진단의 / 진단 프로그램\"}, {\"id\": \"e072\", \"en\": \"muddle\", \"pos\": \"[동/명]\", \"ko\": \"헝클어뜨리다 / 혼동하다 / (정신적인) 혼란 상태\"}, {\"id\": \"e073\", \"en\": \"beset\", \"pos\": \"[동]\", \"ko\": \"괴롭히다\"}, {\"id\": \"e074\", \"en\": \"coordination\", \"pos\": \"[명]\", \"ko\": \"조직(화), 합동, 조화 / (신체 동작의) 조정력\"}, {\"id\": \"e075\", \"en\": \"distinction\", \"pos\": \"[명]\", \"ko\": \"(뚜렷한) 차이[대조] / 뛰어남, 탁월함 / 구분, 차별\"}, {\"id\": \"e076\", \"en\": \"distinctive\", \"pos\": \"[형]\", \"ko\": \"독특한\"}, {\"id\": \"e077\", \"en\": \"dysfunctional\", \"pos\": \"[형]\", \"ko\": \"제대로 기능을 하지 않는, 고장난\"}, {\"id\": \"e078\", \"en\": \"hoard\", \"pos\": \"[명/동]\", \"ko\": \"(비밀 장소에 모아 놓은) 비축[저장]물 / 비축하다\"}, {\"id\": \"e079\", \"en\": \"secrecy\", \"pos\": \"[명]\", \"ko\": \"비밀 유지[엄수]; 비밀(인 상태)\"}, {\"id\": \"e080\", \"en\": \"ambiguity\", \"pos\": \"[명]\", \"ko\": \"애매성, 애매모호함 / 애매모호한 말\"}, {\"id\": \"e081\", \"en\": \"ramble on\", \"pos\": \"[구동사]\", \"ko\": \"장황하게 이야기하다\"}, {\"id\": \"e082\", \"en\": \"corrective\", \"pos\": \"[형/명]\", \"ko\": \"(잘못된 것을) 바로잡는[수정/교정의] / 수정[교정]하는 것\"}, {\"id\": \"e083\", \"en\": \"procure\", \"pos\": \"[동]\", \"ko\": \"(특히 어렵게) 구하다[입수하다]\"}, {\"id\": \"e084\", \"en\": \"rectify\", \"pos\": \"[동]\", \"ko\": \"(잘못된 것을) 바로잡다\"}, {\"id\": \"e085\", \"en\": \"imperfection\", \"pos\": \"[명]\", \"ko\": \"미비점, 결함\"}, {\"id\": \"e086\", \"en\": \"equilibrium\", \"pos\": \"[명]\", \"ko\": \"평형[균형] (상태) / (마음의) 평정\"}, {\"id\": \"e087\", \"en\": \"turbulence\", \"pos\": \"[명]\", \"ko\": \"격동, 격변 / (물·공기의) 난류, 난기류\"}, {\"id\": \"e088\", \"en\": \"embryonic\", \"pos\": \"[형]\", \"ko\": \"초기의 / 배아의\"}, {\"id\": \"e089\", \"en\": \"irrespective of\", \"pos\": \"[전치사]\", \"ko\": \"~와 관계[상관]없이\"}, {\"id\": \"e090\", \"en\": \"conversion\", \"pos\": \"[명]\", \"ko\": \"전환, 개조 / 개종, 전향\"}, {\"id\": \"e091\", \"en\": \"derivative\", \"pos\": \"[명/형]\", \"ko\": \"파생어, 파생물 / 다른 것을 본뜬, 새롭지 않은\"}, {\"id\": \"e092\", \"en\": \"infringement\", \"pos\": \"[명]\", \"ko\": \"(법규) 위반, 위배 / (특허권·판권의) 침해\"}, {\"id\": \"e093\", \"en\": \"deputy\", \"pos\": \"[명]\", \"ko\": \"부-[대행/대리인] / (일부 국가의) 의원, 국회의원\"}, {\"id\": \"e094\", \"en\": \"legislator\", \"pos\": \"[명]\", \"ko\": \"입법자, 국회[의회]의원\"}, {\"id\": \"e095\", \"en\": \"finalize\", \"pos\": \"[동]\", \"ko\": \"마무리짓다, 완결하다\"}, {\"id\": \"e096\", \"en\": \"agility\", \"pos\": \"[명]\", \"ko\": \"민첩; 명민함\"}, {\"id\": \"e097\", \"en\": \"leverage\", \"pos\": \"[명]\", \"ko\": \"영향력 / 지렛대 사용; 지렛대의 힘\"}, {\"id\": \"e098\", \"en\": \"accreditation\", \"pos\": \"[명]\", \"ko\": \"승인, 인가\"}, {\"id\": \"e099\", \"en\": \"generic\", \"pos\": \"[형]\", \"ko\": \"포괄적인, 총칭[통칭]의 / 일반 명칭으로 판매되는\"}, {\"id\": \"e100\", \"en\": \"immense\", \"pos\": \"[형]\", \"ko\": \"엄청난, 어마어마한\"}, {\"id\": \"e101\", \"en\": \"decent\", \"pos\": \"[형]\", \"ko\": \"(수준·질이) 괜찮은[제대로 된] / 품위 있는, 예의 바른\"}, {\"id\": \"e102\", \"en\": \"exacerbate\", \"pos\": \"[동]\", \"ko\": \"(특히 질병·문제를) 악화시키다\"}, {\"id\": \"e103\", \"en\": \"default\", \"pos\": \"[명/동]\", \"ko\": \"채무 불이행, 디폴트 / (채무를) 이행하지 않다\"}, {\"id\": \"e104\", \"en\": \"conversely\", \"pos\": \"[부사]\", \"ko\": \"정반대로, 역으로\"}, {\"id\": \"e105\", \"en\": \"circumvent\", \"pos\": \"[동]\", \"ko\": \"(어려움이나 법 등을) 피하다[면하다]\"}, {\"id\": \"e106\", \"en\": \"retaliation\", \"pos\": \"[명]\", \"ko\": \"보복, 앙갚음\"}, {\"id\": \"e107\", \"en\": \"complement\", \"pos\": \"[동/명]\", \"ko\": \"보완하다 / 보완물, 금상첨화격 요소\"}, {\"id\": \"e108\", \"en\": \"convergence\", \"pos\": \"[명]\", \"ko\": \"한 점으로 집합함, 집중성 / [수학] 수렴\"}, {\"id\": \"e109\", \"en\": \"encompass\", \"pos\": \"[동]\", \"ko\": \"(많은 것을) 포함[망라]하다, 아우르다\"}, {\"id\": \"e110\", \"en\": \"illuminating\", \"pos\": \"[형]\", \"ko\": \"이해를 돕는, 분명하게 하는\"}, {\"id\": \"e111\", \"en\": \"hedge\", \"pos\": \"[명/동]\", \"ko\": \"생울타리 / (손실을 막기 위한) 대비책 / 얼버무리다\"}, {\"id\": \"e112\", \"en\": \"signpost\", \"pos\": \"[명/동]\", \"ko\": \"(도로) 표지판, 이정표 / (주장·연설의) 방향을 제시하다\"}, {\"id\": \"e113\", \"en\": \"intervene\", \"pos\": \"[동]\", \"ko\": \"(상황 개선을 돕기 위해) 개입하다 / 끼어들다[가로막다]\"}, {\"id\": \"e114\", \"en\": \"relinquish\", \"pos\": \"[동]\", \"ko\": \"(특히 마지못해 소유권 등을) 포기하다[내주다]\"}, {\"id\": \"e115\", \"en\": \"metaphor\", \"pos\": \"[명]\", \"ko\": \"은유, 비유\"}, {\"id\": \"e116\", \"en\": \"stave off\", \"pos\": \"[구동사]\", \"ko\": \"비키다, 피하다, 간신히 모면하다\"}, {\"id\": \"e117\", \"en\": \"outset\", \"pos\": \"[명]\", \"ko\": \"착수, 시초, 발단\"}, {\"id\": \"e118\", \"en\": \"paramount\", \"pos\": \"[형]\", \"ko\": \"다른 무엇보다[가장] 중요한 / (지위·권력이) 최고의\"}, {\"id\": \"e119\", \"en\": \"implicit\", \"pos\": \"[형]\", \"ko\": \"암시된, 내포된 / 절대적인, 무조건적인\"}, {\"id\": \"e120\", \"en\": \"detriment\", \"pos\": \"[명]\", \"ko\": \"손상(을 초래하는 것)\"}, {\"id\": \"e121\", \"en\": \"avenue\", \"pos\": \"[명]\", \"ko\": \"(도시의) 거리 / 진입 도로 / (나아갈) 길, 방안\"}, {\"id\": \"e122\", \"en\": \"insofar\", \"pos\": \"[부사]\", \"ko\": \"~하는 한에 있어서는\"}, {\"id\": \"e123\", \"en\": \"plummet\", \"pos\": \"[동]\", \"ko\": \"곤두박질치다, 급락하다\"}, {\"id\": \"e124\", \"en\": \"emergent\", \"pos\": \"[형]\", \"ko\": \"신생의, 신흥의\"}, {\"id\": \"e125\", \"en\": \"obscure\", \"pos\": \"[형/동]\", \"ko\": \"잘 알려져 있지 않은, 무명의 / 이해하기 힘든 / 모호하게 하다\"}, {\"id\": \"e126\", \"en\": \"premise\", \"pos\": \"[명]\", \"ko\": \"(주장의) 전제\"}, {\"id\": \"e127\", \"en\": \"overriding\", \"pos\": \"[형]\", \"ko\": \"다른 무엇보다 더 중요한, 최우선시 되는\"}, {\"id\": \"e128\", \"en\": \"tumble\", \"pos\": \"[동/명]\", \"ko\": \"굴러 떨어지다 / 폭삭 무너지다 / 폭락, 빠른 하락\"}, {\"id\": \"e129\", \"en\": \"appreciation\", \"pos\": \"[명]\", \"ko\": \"감탄, 감상 / 감사 / 가치 상승\"}, {\"id\": \"e130\", \"en\": \"obsolete\", \"pos\": \"[형]\", \"ko\": \"더 이상 쓸모가 없는, 한물간, 구식의\"}, {\"id\": \"e131\", \"en\": \"staggering\", \"pos\": \"[형]\", \"ko\": \"(너무 엄청나서) 충격적인, 믿기 어려운\"}, {\"id\": \"e132\", \"en\": \"pitfall\", \"pos\": \"[명]\", \"ko\": \"(눈에 잘 안 띄는) 위험[곤란]\"}, {\"id\": \"e133\", \"en\": \"overhaul\", \"pos\": \"[명/동]\", \"ko\": \"(기계·시스템의) 점검[정비] / 점검[정비]하다 / 앞지르다\"}, {\"id\": \"e134\", \"en\": \"governance\", \"pos\": \"[명]\", \"ko\": \"통치, 관리; 통치[관리] 방식\"}, {\"id\": \"e135\", \"en\": \"backwater\", \"pos\": \"[명]\", \"ko\": \"(강의 잔잔한) 후미 / (발전·변화의 영향을 덜 받는) 후미진 곳\"}, {\"id\": \"e136\", \"en\": \"readership\", \"pos\": \"[명]\", \"ko\": \"(특정 신문·잡지의) 독자 수[층]\"}, {\"id\": \"e137\", \"en\": \"circumscribe\", \"pos\": \"[동]\", \"ko\": \"(권리·자유 등을) 제한[억제]하다\"}, {\"id\": \"e138\", \"en\": \"apprehensive\", \"pos\": \"[형]\", \"ko\": \"걱정되는, 불안한\"}, {\"id\": \"e139\", \"en\": \"aptitude\", \"pos\": \"[명]\", \"ko\": \"소질, 적성\"}, {\"id\": \"e140\", \"en\": \"commensurate\", \"pos\": \"[형]\", \"ko\": \"(크기·중요도·자질 등에) 어울리는[상응하는]\"}, {\"id\": \"e141\", \"en\": \"onward\", \"pos\": \"[형]\", \"ko\": \"앞으로[계속 이어서] 나아가는\"}, {\"id\": \"e142\", \"en\": \"capitalize\", \"pos\": \"[동]\", \"ko\": \"대문자로 쓰다 / 자본화하다 / 출자하다\"}, {\"id\": \"e143\", \"en\": \"manifestation\", \"pos\": \"[명]\", \"ko\": \"(어떤 것이 존재하거나 일어나고 있음을 보여주는) 징후[표명]\"}, {\"id\": \"e144\", \"en\": \"concrete\", \"pos\": \"[형/명]\", \"ko\": \"콘크리트로 된 / 사실에 의거한, 구체적인 / 콘크리트\"}, {\"id\": \"e145\", \"en\": \"wither\", \"pos\": \"[동]\", \"ko\": \"시들다, 말라 죽다 / 약해지다, 시들어 가다\"}, {\"id\": \"e146\", \"en\": \"waiver\", \"pos\": \"[명]\", \"ko\": \"(권리 등의) 포기; 포기 서류\"}, {\"id\": \"e147\", \"en\": \"assign\", \"pos\": \"[동]\", \"ko\": \"(일·책임 등을) 맡기다[배정하다] / 선임하다 / 양도하다\"}, {\"id\": \"e148\", \"en\": \"grant\", \"pos\": \"[동/명]\", \"ko\": \"(공식·법적으로) 승인[허락]하다 / (내키지 않지만) 인정하다 / 보조금\"}, {\"id\": \"e149\", \"en\": \"constitute\", \"pos\": \"[동]\", \"ko\": \"~이 되는 것으로 여겨지다 / ~을 구성하다[이루다]\"}, {\"id\": \"e150\", \"en\": \"subsequent to\", \"pos\": \"[전치사]\", \"ko\": \"~ 다음에[뒤에]\"}, {\"id\": \"e151\", \"en\": \"duly\", \"pos\": \"[부사]\", \"ko\": \"적절한 절차에 따라, 예상대로 / 적절한 때에\"}, {\"id\": \"e152\", \"en\": \"supersede\", \"pos\": \"[동]\", \"ko\": \"대신하다, 대체하다\"}, {\"id\": \"e153\", \"en\": \"counterpart\", \"pos\": \"[명]\", \"ko\": \"(다른 상황에서 동일한 지위나 기능을 갖는) 상대, 대응 관계에 있는 사람[것]\"}, {\"id\": \"e154\", \"en\": \"construe\", \"pos\": \"[동]\", \"ko\": \"~을 (~으로) 이해[해석]하다\"}, {\"id\": \"e155\", \"en\": \"remedy\", \"pos\": \"[명/동]\", \"ko\": \"처리 방안, 해결[개선]책 / 치료(약) / 바로잡다\"}, {\"id\": \"e156\", \"en\": \"proprietary\", \"pos\": \"[형]\", \"ko\": \"등록[전매] 상표가 붙은 / 소유주[자]의\"}, {\"id\": \"e157\", \"en\": \"amendment\", \"pos\": \"[명]\", \"ko\": \"(법 등의) 개정[수정] / 미국 헌법 수정 조항\"}, {\"id\": \"e158\", \"en\": \"sabotage\", \"pos\": \"[명/동]\", \"ko\": \"사보타주, (고의적인) 방해 행위 / 방해하다\"}, {\"id\": \"e159\", \"en\": \"jurisdiction\", \"pos\": \"[명]\", \"ko\": \"관할권; 사법권 / 관할 구역\"}, {\"id\": \"e160\", \"en\": \"ombudsman\", \"pos\": \"[명]\", \"ko\": \"옴부즈맨, 행정감찰관 (시민의 고충 처리를 담당하는 공무원)\"}, {\"id\": \"e161\", \"en\": \"memorandum\", \"pos\": \"[명]\", \"ko\": \"(아직 정식으로 서명되지 않은) 각서 / (특정 주제에 대한) 제안서[보고서]\"}, {\"id\": \"e162\", \"en\": \"indigenization\", \"pos\": \"[명]\", \"ko\": \"현지 (기업) 우선, 현지인 우선 채용\"}, {\"id\": \"e163\", \"en\": \"abbreviation\", \"pos\": \"[명]\", \"ko\": \"(~의) 축약형 / 축약\"}, {\"id\": \"e164\", \"en\": \"write-off\", \"pos\": \"[명]\", \"ko\": \"(부채) 탕감 / 폐차 처리 / 공치는 시간\"}, {\"id\": \"e165\", \"en\": \"articulate\", \"pos\": \"[동/형]\", \"ko\": \"(생각·감정을) 분명히 표현하다 / 또렷이 말하다 / 잘 표현하는\"}, {\"id\": \"e166\", \"en\": \"presence\", \"pos\": \"[명]\", \"ko\": \"(특정한 곳에) 있음, 존재(함) / 주둔군 / 존재감\"}, {\"id\": \"e167\", \"en\": \"backdrop\", \"pos\": \"[명]\", \"ko\": \"(무대의) 배경(막) / (사건의) 배경[환경]\"}, {\"id\": \"e168\", \"en\": \"clamp\", \"pos\": \"[동/명]\", \"ko\": \"죔쇠로 고정시키다 / 꽉 물다[잡다] / 죔쇠\"}, {\"id\": \"e169\", \"en\": \"intuitive\", \"pos\": \"[형]\", \"ko\": \"직감[직관]에 의한 / 이해하기[사용하기] 쉬운\"}, {\"id\": \"e170\", \"en\": \"aspect\", \"pos\": \"[명]\", \"ko\": \"측면, 양상 / (건물·땅의) 방향\"}, {\"id\": \"e171\", \"en\": \"incorporate\", \"pos\": \"[동]\", \"ko\": \"(일부로) 포함하다 / (법인체를) 설립[창립]하다\"}, {\"id\": \"e172\", \"en\": \"hypothetical\", \"pos\": \"[형]\", \"ko\": \"가상적인, 가설[가정]의\"}, {\"id\": \"e173\", \"en\": \"signify\", \"pos\": \"[동]\", \"ko\": \"의미하다, 뜻하다 / (행동으로 감정을) 나타내다 / 중요하다\"}, {\"id\": \"e174\", \"en\": \"commonality\", \"pos\": \"[명]\", \"ko\": \"공통성\"}, {\"id\": \"e175\", \"en\": \"asset\", \"pos\": \"[명]\", \"ko\": \"자산(이 되는 사람·물건) / (부동산과 같은) 자산, 재산\"}, {\"id\": \"e176\", \"en\": \"monetary\", \"pos\": \"[형]\", \"ko\": \"통화[화폐]의\"}, {\"id\": \"e177\", \"en\": \"magnitude\", \"pos\": \"[명]\", \"ko\": \"(엄청난) 규모[중요도] / (별의) 광도 / 지진 규모\"}, {\"id\": \"e178\", \"en\": \"accrued\", \"pos\": \"[형]\", \"ko\": \"발생한, (취득했지만) 미수의, (부담했지만) 미불의\"}, {\"id\": \"e179\", \"en\": \"accrued liabilities\", \"pos\": \"[명]\", \"ko\": \"미불부채, 예상부채 (법인 유동부채의 한 항목)\"}, {\"id\": \"e180\", \"en\": \"implicitly\", \"pos\": \"[부사]\", \"ko\": \"함축적으로 / 무조건[절대적]으로\"}, {\"id\": \"e181\", \"en\": \"merit\", \"pos\": \"[명/동]\", \"ko\": \"가치; 훌륭함 / 장점 / 받을 만하다\"}, {\"id\": \"e182\", \"en\": \"pragmatic\", \"pos\": \"[형]\", \"ko\": \"실용적인\"}, {\"id\": \"e183\", \"en\": \"excess\", \"pos\": \"[명/형]\", \"ko\": \"(어떤 정도를) 지나침, 과도, 과잉 / 초과한\"}, {\"id\": \"e184\", \"en\": \"assessment\", \"pos\": \"[명]\", \"ko\": \"평가(한 의견) / 평가 행위 / 평가[사정] 액\"}, {\"id\": \"e185\", \"en\": \"compile\", \"pos\": \"[동]\", \"ko\": \"(여러 출처에서 자료를 따와) 엮다, 편집[편찬]하다\"}, {\"id\": \"e186\", \"en\": \"assertion\", \"pos\": \"[명]\", \"ko\": \"(사실임을) 주장 / (권리 등의) 행사\"}, {\"id\": \"e187\", \"en\": \"phenomenal\", \"pos\": \"[형]\", \"ko\": \"경이적인, 경탄스러운\"}, {\"id\": \"e188\", \"en\": \"dampen\", \"pos\": \"[동]\", \"ko\": \"(물에) 축이다[적시다] / (감정·반응의 기세를) 꺾다[약화시키다]\"}, {\"id\": \"e189\", \"en\": \"focal\", \"pos\": \"[형]\", \"ko\": \"중심의; 초점의\"}, {\"id\": \"e190\", \"en\": \"excerpt\", \"pos\": \"[명]\", \"ko\": \"(글·음악·영화 등의) 발췌[인용] (부분)\"}, {\"id\": \"e191\", \"en\": \"shrift\", \"pos\": \"[명]\", \"ko\": \"고해[참회]; 임종 고해 (short shrift: 냉담한 취급)\"}, {\"id\": \"e192\", \"en\": \"articulation\", \"pos\": \"[명]\", \"ko\": \"(말로 하는) 표현 / 발화; 조음(調音) / 관절\"}, {\"id\": \"e193\", \"en\": \"performance\", \"pos\": \"[명]\", \"ko\": \"공연, 연주회 / 실적, 성과 / (과제의) 수행[실행]\"}, {\"id\": \"e194\", \"en\": \"contemplate\", \"pos\": \"[동]\", \"ko\": \"(어떤 일의 가부나 방법에 대해) 고려하다[생각하다] / 심사숙고하다\"}, {\"id\": \"e195\", \"en\": \"venue\", \"pos\": \"[명]\", \"ko\": \"(콘서트·스포츠 경기·회담 등의) 장소\"}, {\"id\": \"e196\", \"en\": \"hold harmless\", \"pos\": \"[구]\", \"ko\": \"보호하다; (손해가 생겨도) 책임을 면제하다\"}, {\"id\": \"e197\", \"en\": \"coverage\", \"pos\": \"[명]\", \"ko\": \"(신문·텔레비전의) 보도[방송] / (정보의) 범위 / 보급(률)\"}, {\"id\": \"e198\", \"en\": \"exhibit\", \"pos\": \"[동/명]\", \"ko\": \"전시하다 / (감정·특질을) 보이다[드러내다] / 전시품\"}, {\"id\": \"e199\", \"en\": \"statute\", \"pos\": \"[명]\", \"ko\": \"법규, 법령 / (조직·기관의) 규정\"}, {\"id\": \"e200\", \"en\": \"security\", \"pos\": \"[명]\", \"ko\": \"보안, 경비, 안보 / (미래를 위한) 보장 / 담보 / 유가 증권\"}, {\"id\": \"e201\", \"en\": \"term\", \"pos\": \"[명/동]\", \"ko\": \"용어, 말 / 학기 / (지속되는) 기간 / (이름으로) 칭하다\"}, {\"id\": \"e202\", \"en\": \"cessation\", \"pos\": \"[명]\", \"ko\": \"중단, 중지\"}, {\"id\": \"e203\", \"en\": \"award\", \"pos\": \"[명/동]\", \"ko\": \"(부상이 딸린) 상 / 수여하다 / 지급 판정을 내리다\"}, {\"id\": \"e204\", \"en\": \"overhead\", \"pos\": \"[형/명]\", \"ko\": \"(비용이) 간접비의 / 간접비[경비]\"}, {\"id\": \"e205\", \"en\": \"terms\", \"pos\": \"[명]\", \"ko\": \"(합의·계약 등의) 조건 / (지불) 조건, 가격\"}, {\"id\": \"e206\", \"en\": \"release\", \"pos\": \"[동/명]\", \"ko\": \"석방[해방]하다 / (대중에게) 공개[발표]하다 / 발매 음반\"}, {\"id\": \"e207\", \"en\": \"development\", \"pos\": \"[명]\", \"ko\": \"발달, 성장 / (신제품의) 개발 / 새로이 전개된 사건[국면]\"}, {\"id\": \"e208\", \"en\": \"title\", \"pos\": \"[명/동]\", \"ko\": \"제목, 표제 / 칭호, 작위 / (부동산) 소유권\"}, {\"id\": \"e209\", \"en\": \"document\", \"pos\": \"[명/동]\", \"ko\": \"서류, 문서 / (상세한 내용을) 기록하다\"}, {\"id\": \"e210\", \"en\": \"exercise\", \"pos\": \"[명/동]\", \"ko\": \"(신체적) 운동 / (권력·권리 등의) 행사[발휘]하다\"}, {\"id\": \"e211\", \"en\": \"provision\", \"pos\": \"[명]\", \"ko\": \"공급, 제공 / 대비, 준비 / (법률 문서의) 조항[규정]\"}, {\"id\": \"e212\", \"en\": \"current assets\", \"pos\": \"[명]\", \"ko\": \"유동 자산\"}, {\"id\": \"e213\", \"en\": \"stockholder's equity\", \"pos\": \"[명]\", \"ko\": \"(주식회사의) 자본 / 주주지분\"}, {\"id\": \"e214\", \"en\": \"cash equivalents\", \"pos\": \"[명]\", \"ko\": \"현금등가액\"}, {\"id\": \"e215\", \"en\": \"warranty liability\", \"pos\": \"[명]\", \"ko\": \"담보책임\"}, {\"id\": \"e216\", \"en\": \"or otherwise\", \"pos\": \"[구]\", \"ko\": \"(앞에 언급한 것과) 다른 것인지/것이든, 그 반대이든\"}, {\"id\": \"e217\", \"en\": \"wither\", \"pos\": \"[동]\", \"ko\": \"시들다, 말라 죽다 / 약해지다, 시들어 가다\"}, {\"id\": \"e001\", \"en\": \"interim\", \"pos\": \"[형]\", \"ko\": \"중간[임시/과도]의, 잠정적인\"}, {\"id\": \"e002\", \"en\": \"deadlock\", \"pos\": \"[명]\", \"ko\": \"교착 상태, 협상의 막힘\"}, {\"id\": \"e003\", \"en\": \"scheme\", \"pos\": \"[명/동]\", \"ko\": \"(운영) 계획, 제도 / 책략 / 책략을 꾸미다\"}, {\"id\": \"e004\", \"en\": \"stopgap\", \"pos\": \"[명]\", \"ko\": \"임시방편\"}, {\"id\": \"e005\", \"en\": \"tentatively\", \"pos\": \"[부사]\", \"ko\": \"시험[실험]적으로, 망설이며\"}, {\"id\": \"e006\", \"en\": \"repercussion\", \"pos\": \"[명]\", \"ko\": \"(어떤 사건이 초래한) 간접적인 영향\"}, {\"id\": \"e007\", \"en\": \"expedite\", \"pos\": \"[동]\", \"ko\": \"더 신속히 처리하다\"}, {\"id\": \"e008\", \"en\": \"expansionary\", \"pos\": \"[형]\", \"ko\": \"(경제를) 신장시키는\"}, {\"id\": \"e009\", \"en\": \"therapeutics\", \"pos\": \"[명]\", \"ko\": \"치료법, 치료학\"}, {\"id\": \"e010\", \"en\": \"exemption\", \"pos\": \"[명]\", \"ko\": \"면제, (세금) 공제\"}, {\"id\": \"e011\", \"en\": \"endorsement\", \"pos\": \"[명]\", \"ko\": \"(공개적인) 지지 / (유명인의 광고) 보증[홍보]\"}, {\"id\": \"e012\", \"en\": \"lender\", \"pos\": \"[명]\", \"ko\": \"빌려주는 사람, 대출 기관\"}, {\"id\": \"e013\", \"en\": \"amplify\", \"pos\": \"[동]\", \"ko\": \"증폭시키다 / 더 자세히 진술하다\"}, {\"id\": \"e014\", \"en\": \"deterioration\", \"pos\": \"[명]\", \"ko\": \"악화, 가치의 하락, 퇴보\"}, {\"id\": \"e015\", \"en\": \"hinge on\", \"pos\": \"[구동사]\", \"ko\": \"~에 달려있다\"}, {\"id\": \"e016\", \"en\": \"equivalent\", \"pos\": \"[형/명]\", \"ko\": \"(가치·중요도 등이) 동등한[맞먹는] / 등가물\"}, {\"id\": \"e017\", \"en\": \"opt to\", \"pos\": \"[동사구]\", \"ko\": \"~하기로 선택하다\"}, {\"id\": \"e018\", \"en\": \"Cabinet meeting\", \"pos\": \"[명]\", \"ko\": \"각료 회의\"}, {\"id\": \"e019\", \"en\": \"dent\", \"pos\": \"[동/명]\", \"ko\": \"움푹 들어가게 하다 / (자신감 등을) 훼손하다 / 움푹 들어간 곳\"}, {\"id\": \"e020\", \"en\": \"imperative\", \"pos\": \"[형]\", \"ko\": \"반드시 해야 하는, 긴요한 / 위엄 있는\"}, {\"id\": \"e021\", \"en\": \"devious\", \"pos\": \"[형]\", \"ko\": \"정직하지 못한, 기만적인\"}, {\"id\": \"e022\", \"en\": \"satire\", \"pos\": \"[명]\", \"ko\": \"풍자\"}, {\"id\": \"e023\", \"en\": \"recrimination\", \"pos\": \"[명]\", \"ko\": \"(상대방의 비난에 맞서는) 비난, 맞대응\"}, {\"id\": \"e024\", \"en\": \"mollify\", \"pos\": \"[동]\", \"ko\": \"(사람을) 달래다[진정시키다]\"}, {\"id\": \"e025\", \"en\": \"apparatus\", \"pos\": \"[명]\", \"ko\": \"기구, 장치 / (특히 정당·정부의) 조직체[기구]\"}, {\"id\": \"e026\", \"en\": \"legislative\", \"pos\": \"[형]\", \"ko\": \"입법의, 입법부의\"}, {\"id\": \"e027\", \"en\": \"stifle\", \"pos\": \"[동]\", \"ko\": \"(감정 등을) 억누르다, 억압하다 / 숨이 막히다\"}, {\"id\": \"e028\", \"en\": \"accuse of\", \"pos\": \"[동사구]\", \"ko\": \"~의 죄로 고발[고소, 기소]하다\"}, {\"id\": \"e029\", \"en\": \"tainted\", \"pos\": \"[형]\", \"ko\": \"더럽혀진, 썩은, 부패한\"}, {\"id\": \"e030\", \"en\": \"respiratory\", \"pos\": \"[형]\", \"ko\": \"호흡의, 호흡 기관의\"}, {\"id\": \"e031\", \"en\": \"acute\", \"pos\": \"[형]\", \"ko\": \"격심한, 극심한 / (질병이) 급성의 / 예민한\"}, {\"id\": \"e032\", \"en\": \"thuggish\", \"pos\": \"[형]\", \"ko\": \"폭력적인, 난폭한, 암살의\"}, {\"id\": \"e033\", \"en\": \"bungling\", \"pos\": \"[형/명]\", \"ko\": \"서투른 (솜씨)\"}, {\"id\": \"e034\", \"en\": \"accusation\", \"pos\": \"[명]\", \"ko\": \"혐의 제기, 비난 / 고발, 기소\"}, {\"id\": \"e035\", \"en\": \"simmering\", \"pos\": \"[형]\", \"ko\": \"당장이라도 폭발할 것 같은\"}, {\"id\": \"e036\", \"en\": \"reprimand\", \"pos\": \"[동/명]\", \"ko\": \"질책하다 / 질책\"}, {\"id\": \"e037\", \"en\": \"offset\", \"pos\": \"[동]\", \"ko\": \"상쇄[벌충]하다\"}, {\"id\": \"e038\", \"en\": \"inherent\", \"pos\": \"[형]\", \"ko\": \"내재하는\"}, {\"id\": \"e039\", \"en\": \"outlook\", \"pos\": \"[명]\", \"ko\": \"관점, 세계관, 인생관 / (앞날에 대한) 전망\"}, {\"id\": \"e040\", \"en\": \"initiative\", \"pos\": \"[명]\", \"ko\": \"(새로운) 계획 / 진취성, 결단력 / 주도권\"}, {\"id\": \"e041\", \"en\": \"capability\", \"pos\": \"[명]\", \"ko\": \"능력, 역량 / (한 국가의) 능력[힘]\"}, {\"id\": \"e042\", \"en\": \"assess\", \"pos\": \"[동]\", \"ko\": \"(특성·자질 등을) 재다[가늠하다] / 평가하다\"}, {\"id\": \"e043\", \"en\": \"outbreak\", \"pos\": \"[명]\", \"ko\": \"(전쟁·사고·질병 등의) 발생[발발]\"}, {\"id\": \"e044\", \"en\": \"curtail\", \"pos\": \"[동]\", \"ko\": \"축소[삭감/단축]시키다\"}, {\"id\": \"e045\", \"en\": \"elaborate on\", \"pos\": \"[구동사]\", \"ko\": \"~에 대해 상세히 말하다\"}, {\"id\": \"e046\", \"en\": \"quarantine\", \"pos\": \"[명/동]\", \"ko\": \"(전염병 확산을 막기 위한) 격리 / 격리하다\"}, {\"id\": \"e047\", \"en\": \"in terms of\", \"pos\": \"[구]\", \"ko\": \"~면에서, ~에 관하여\"}, {\"id\": \"e048\", \"en\": \"contain\", \"pos\": \"[동]\", \"ko\": \"~이 들어[함유되어] 있다 / (감정을) 억누르다 / 방지하다\"}, {\"id\": \"e049\", \"en\": \"incidence\", \"pos\": \"[명]\", \"ko\": \"(사건 등의) 발생 정도[영향 범위]\"}, {\"id\": \"e050\", \"en\": \"resultant\", \"pos\": \"[형]\", \"ko\": \"(앞에 언급한) 그 결과로 생긴[그에 따른]\"}, {\"id\": \"e051\", \"en\": \"vigilance\", \"pos\": \"[명]\", \"ko\": \"경계, 조심, 각성 (상태)\"}, {\"id\": \"e052\", \"en\": \"amid\", \"pos\": \"[전치사]\", \"ko\": \"(흥분·공포심이 느껴지는) 가운데[중]에 / ~으로 에워싸인\"}, {\"id\": \"e053\", \"en\": \"vulnerable\", \"pos\": \"[형]\", \"ko\": \"(~에) 취약한, 연약한\"}, {\"id\": \"e054\", \"en\": \"prudent\", \"pos\": \"[형]\", \"ko\": \"신중한\"}, {\"id\": \"e055\", \"en\": \"bolster\", \"pos\": \"[동]\", \"ko\": \"북돋우다, 강화[개선]하다\"}, {\"id\": \"e056\", \"en\": \"skew\", \"pos\": \"[동]\", \"ko\": \"왜곡하다 / 비스듬히 움직이다[있다]\"}, {\"id\": \"e057\", \"en\": \"reiterate\", \"pos\": \"[동]\", \"ko\": \"(이미 한 말을, 특히 강조하기 위해) 반복하다[되풀이하다]\"}, {\"id\": \"e058\", \"en\": \"concurrently\", \"pos\": \"[부사]\", \"ko\": \"(~와) 동시에, 함께\"}, {\"id\": \"e059\", \"en\": \"underpin\", \"pos\": \"[동]\", \"ko\": \"(주장 등을) 뒷받침하다 / (벽을) 보강하다\"}, {\"id\": \"e060\", \"en\": \"polarization\", \"pos\": \"[명]\", \"ko\": \"양극화, (정당·의견 등의) 대립\"}, {\"id\": \"e061\", \"en\": \"tackle\", \"pos\": \"[동]\", \"ko\": \"(힘든 문제·상황과) 씨름하다 / 솔직하게 말하다[따지다]\"}, {\"id\": \"e062\", \"en\": \"permeate\", \"pos\": \"[동]\", \"ko\": \"스며들다, 침투하다 / 퍼지다\"}, {\"id\": \"e063\", \"en\": \"discrepancy\", \"pos\": \"[명]\", \"ko\": \"(같아야 할 것들 사이의) 차이[불일치]\"}, {\"id\": \"e064\", \"en\": \"withhold\", \"pos\": \"[동]\", \"ko\": \"(~을) 주지 않다\"}, {\"id\": \"e065\", \"en\": \"explicit\", \"pos\": \"[형]\", \"ko\": \"분명한, 명쾌한 / 솔직한 / 노골적인\"}, {\"id\": \"e066\", \"en\": \"quaint\", \"pos\": \"[형]\", \"ko\": \"(매력 있게) 진기한[예스러운]\"}, {\"id\": \"e067\", \"en\": \"beckon\", \"pos\": \"[동]\", \"ko\": \"(오라고) 손짓하다 / 아주 매력적으로 보이다\"}, {\"id\": \"e068\", \"en\": \"sterile\", \"pos\": \"[형]\", \"ko\": \"불임의 / 살균한 / 아무 소득 없는, 무익한\"}, {\"id\": \"e069\", \"en\": \"strait\", \"pos\": \"[명]\", \"ko\": \"해협 / (특히 경제적인) 궁핍[곤경]\"}, {\"id\": \"e070\", \"en\": \"sabbatical\", \"pos\": \"[명]\", \"ko\": \"안식 기간 (대학 교수가 연구·여행을 하는 기간)\"}, {\"id\": \"e071\", \"en\": \"diagnostic\", \"pos\": \"[형/명]\", \"ko\": \"진단의 / 진단 프로그램\"}, {\"id\": \"e072\", \"en\": \"muddle\", \"pos\": \"[동/명]\", \"ko\": \"헝클어뜨리다 / 혼동하다 / (정신적인) 혼란 상태\"}, {\"id\": \"e073\", \"en\": \"beset\", \"pos\": \"[동]\", \"ko\": \"괴롭히다\"}, {\"id\": \"e074\", \"en\": \"coordination\", \"pos\": \"[명]\", \"ko\": \"조직(화), 합동, 조화 / (신체 동작의) 조정력\"}, {\"id\": \"e075\", \"en\": \"distinction\", \"pos\": \"[명]\", \"ko\": \"(뚜렷한) 차이[대조] / 뛰어남, 탁월함 / 구분, 차별\"}, {\"id\": \"e076\", \"en\": \"distinctive\", \"pos\": \"[형]\", \"ko\": \"독특한\"}, {\"id\": \"e077\", \"en\": \"dysfunctional\", \"pos\": \"[형]\", \"ko\": \"제대로 기능을 하지 않는, 고장난\"}, {\"id\": \"e078\", \"en\": \"hoard\", \"pos\": \"[명/동]\", \"ko\": \"(비밀 장소에 모아 놓은) 비축[저장]물 / 비축하다\"}, {\"id\": \"e079\", \"en\": \"secrecy\", \"pos\": \"[명]\", \"ko\": \"비밀 유지[엄수]; 비밀(인 상태)\"}, {\"id\": \"e080\", \"en\": \"ambiguity\", \"pos\": \"[명]\", \"ko\": \"애매성, 애매모호함 / 애매모호한 말\"}, {\"id\": \"e081\", \"en\": \"ramble on\", \"pos\": \"[구동사]\", \"ko\": \"장황하게 이야기하다\"}, {\"id\": \"e082\", \"en\": \"corrective\", \"pos\": \"[형/명]\", \"ko\": \"(잘못된 것을) 바로잡는[수정/교정의] / 수정[교정]하는 것\"}, {\"id\": \"e083\", \"en\": \"procure\", \"pos\": \"[동]\", \"ko\": \"(특히 어렵게) 구하다[입수하다]\"}, {\"id\": \"e084\", \"en\": \"rectify\", \"pos\": \"[동]\", \"ko\": \"(잘못된 것을) 바로잡다\"}, {\"id\": \"e085\", \"en\": \"imperfection\", \"pos\": \"[명]\", \"ko\": \"미비점, 결함\"}, {\"id\": \"e086\", \"en\": \"equilibrium\", \"pos\": \"[명]\", \"ko\": \"평형[균형] (상태) / (마음의) 평정\"}, {\"id\": \"e087\", \"en\": \"turbulence\", \"pos\": \"[명]\", \"ko\": \"격동, 격변 / (물·공기의) 난류, 난기류\"}, {\"id\": \"e088\", \"en\": \"embryonic\", \"pos\": \"[형]\", \"ko\": \"초기의 / 배아의\"}, {\"id\": \"e089\", \"en\": \"irrespective of\", \"pos\": \"[전치사]\", \"ko\": \"~와 관계[상관]없이\"}, {\"id\": \"e090\", \"en\": \"conversion\", \"pos\": \"[명]\", \"ko\": \"전환, 개조 / 개종, 전향\"}, {\"id\": \"e091\", \"en\": \"derivative\", \"pos\": \"[명/형]\", \"ko\": \"파생어, 파생물 / 다른 것을 본뜬, 새롭지 않은\"}, {\"id\": \"e092\", \"en\": \"infringement\", \"pos\": \"[명]\", \"ko\": \"(법규) 위반, 위배 / (특허권·판권의) 침해\"}, {\"id\": \"e093\", \"en\": \"deputy\", \"pos\": \"[명]\", \"ko\": \"부-[대행/대리인] / (일부 국가의) 의원, 국회의원\"}, {\"id\": \"e094\", \"en\": \"legislator\", \"pos\": \"[명]\", \"ko\": \"입법자, 국회[의회]의원\"}, {\"id\": \"e095\", \"en\": \"finalize\", \"pos\": \"[동]\", \"ko\": \"마무리짓다, 완결하다\"}, {\"id\": \"e096\", \"en\": \"agility\", \"pos\": \"[명]\", \"ko\": \"민첩; 명민함\"}, {\"id\": \"e097\", \"en\": \"leverage\", \"pos\": \"[명]\", \"ko\": \"영향력 / 지렛대 사용; 지렛대의 힘\"}, {\"id\": \"e098\", \"en\": \"accreditation\", \"pos\": \"[명]\", \"ko\": \"승인, 인가\"}, {\"id\": \"e099\", \"en\": \"generic\", \"pos\": \"[형]\", \"ko\": \"포괄적인, 총칭[통칭]의 / 일반 명칭으로 판매되는\"}, {\"id\": \"e100\", \"en\": \"immense\", \"pos\": \"[형]\", \"ko\": \"엄청난, 어마어마한\"}, {\"id\": \"e101\", \"en\": \"decent\", \"pos\": \"[형]\", \"ko\": \"(수준·질이) 괜찮은[제대로 된] / 품위 있는, 예의 바른\"}, {\"id\": \"e102\", \"en\": \"exacerbate\", \"pos\": \"[동]\", \"ko\": \"(특히 질병·문제를) 악화시키다\"}, {\"id\": \"e103\", \"en\": \"default\", \"pos\": \"[명/동]\", \"ko\": \"채무 불이행, 디폴트 / (채무를) 이행하지 않다\"}, {\"id\": \"e104\", \"en\": \"conversely\", \"pos\": \"[부사]\", \"ko\": \"정반대로, 역으로\"}, {\"id\": \"e105\", \"en\": \"circumvent\", \"pos\": \"[동]\", \"ko\": \"(어려움이나 법 등을) 피하다[면하다]\"}, {\"id\": \"e106\", \"en\": \"retaliation\", \"pos\": \"[명]\", \"ko\": \"보복, 앙갚음\"}, {\"id\": \"e107\", \"en\": \"complement\", \"pos\": \"[동/명]\", \"ko\": \"보완하다 / 보완물, 금상첨화격 요소\"}, {\"id\": \"e108\", \"en\": \"convergence\", \"pos\": \"[명]\", \"ko\": \"한 점으로 집합함, 집중성 / [수학] 수렴\"}, {\"id\": \"e109\", \"en\": \"encompass\", \"pos\": \"[동]\", \"ko\": \"(많은 것을) 포함[망라]하다, 아우르다\"}, {\"id\": \"e110\", \"en\": \"illuminating\", \"pos\": \"[형]\", \"ko\": \"이해를 돕는, 분명하게 하는\"}, {\"id\": \"e111\", \"en\": \"hedge\", \"pos\": \"[명/동]\", \"ko\": \"생울타리 / (손실을 막기 위한) 대비책 / 얼버무리다\"}, {\"id\": \"e112\", \"en\": \"signpost\", \"pos\": \"[명/동]\", \"ko\": \"(도로) 표지판, 이정표 / (주장·연설의) 방향을 제시하다\"}, {\"id\": \"e113\", \"en\": \"intervene\", \"pos\": \"[동]\", \"ko\": \"(상황 개선을 돕기 위해) 개입하다 / 끼어들다[가로막다]\"}, {\"id\": \"e114\", \"en\": \"relinquish\", \"pos\": \"[동]\", \"ko\": \"(특히 마지못해 소유권 등을) 포기하다[내주다]\"}, {\"id\": \"e115\", \"en\": \"metaphor\", \"pos\": \"[명]\", \"ko\": \"은유, 비유\"}, {\"id\": \"e116\", \"en\": \"stave off\", \"pos\": \"[구동사]\", \"ko\": \"비키다, 피하다, 간신히 모면하다\"}, {\"id\": \"e117\", \"en\": \"outset\", \"pos\": \"[명]\", \"ko\": \"착수, 시초, 발단\"}, {\"id\": \"e118\", \"en\": \"paramount\", \"pos\": \"[형]\", \"ko\": \"다른 무엇보다[가장] 중요한 / (지위·권력이) 최고의\"}, {\"id\": \"e119\", \"en\": \"implicit\", \"pos\": \"[형]\", \"ko\": \"암시된, 내포된 / 절대적인, 무조건적인\"}, {\"id\": \"e120\", \"en\": \"detriment\", \"pos\": \"[명]\", \"ko\": \"손상(을 초래하는 것)\"}, {\"id\": \"e121\", \"en\": \"avenue\", \"pos\": \"[명]\", \"ko\": \"(도시의) 거리 / 진입 도로 / (나아갈) 길, 방안\"}, {\"id\": \"e122\", \"en\": \"insofar\", \"pos\": \"[부사]\", \"ko\": \"~하는 한에 있어서는\"}, {\"id\": \"e123\", \"en\": \"plummet\", \"pos\": \"[동]\", \"ko\": \"곤두박질치다, 급락하다\"}, {\"id\": \"e124\", \"en\": \"emergent\", \"pos\": \"[형]\", \"ko\": \"신생의, 신흥의\"}, {\"id\": \"e125\", \"en\": \"obscure\", \"pos\": \"[형/동]\", \"ko\": \"잘 알려져 있지 않은, 무명의 / 이해하기 힘든 / 모호하게 하다\"}, {\"id\": \"e126\", \"en\": \"premise\", \"pos\": \"[명]\", \"ko\": \"(주장의) 전제\"}, {\"id\": \"e127\", \"en\": \"overriding\", \"pos\": \"[형]\", \"ko\": \"다른 무엇보다 더 중요한, 최우선시 되는\"}, {\"id\": \"e128\", \"en\": \"tumble\", \"pos\": \"[동/명]\", \"ko\": \"굴러 떨어지다 / 폭삭 무너지다 / 폭락, 빠른 하락\"}, {\"id\": \"e129\", \"en\": \"appreciation\", \"pos\": \"[명]\", \"ko\": \"감탄, 감상 / 감사 / 가치 상승\"}, {\"id\": \"e130\", \"en\": \"obsolete\", \"pos\": \"[형]\", \"ko\": \"더 이상 쓸모가 없는, 한물간, 구식의\"}, {\"id\": \"e131\", \"en\": \"staggering\", \"pos\": \"[형]\", \"ko\": \"(너무 엄청나서) 충격적인, 믿기 어려운\"}, {\"id\": \"e132\", \"en\": \"pitfall\", \"pos\": \"[명]\", \"ko\": \"(눈에 잘 안 띄는) 위험[곤란]\"}, {\"id\": \"e133\", \"en\": \"overhaul\", \"pos\": \"[명/동]\", \"ko\": \"(기계·시스템의) 점검[정비] / 점검[정비]하다 / 앞지르다\"}, {\"id\": \"e134\", \"en\": \"governance\", \"pos\": \"[명]\", \"ko\": \"통치, 관리; 통치[관리] 방식\"}, {\"id\": \"e135\", \"en\": \"backwater\", \"pos\": \"[명]\", \"ko\": \"(강의 잔잔한) 후미 / (발전·변화의 영향을 덜 받는) 후미진 곳\"}, {\"id\": \"e136\", \"en\": \"readership\", \"pos\": \"[명]\", \"ko\": \"(특정 신문·잡지의) 독자 수[층]\"}, {\"id\": \"e137\", \"en\": \"circumscribe\", \"pos\": \"[동]\", \"ko\": \"(권리·자유 등을) 제한[억제]하다\"}, {\"id\": \"e138\", \"en\": \"apprehensive\", \"pos\": \"[형]\", \"ko\": \"걱정되는, 불안한\"}, {\"id\": \"e139\", \"en\": \"aptitude\", \"pos\": \"[명]\", \"ko\": \"소질, 적성\"}, {\"id\": \"e140\", \"en\": \"commensurate\", \"pos\": \"[형]\", \"ko\": \"(크기·중요도·자질 등에) 어울리는[상응하는]\"}, {\"id\": \"e141\", \"en\": \"onward\", \"pos\": \"[형]\", \"ko\": \"앞으로[계속 이어서] 나아가는\"}, {\"id\": \"e142\", \"en\": \"capitalize\", \"pos\": \"[동]\", \"ko\": \"대문자로 쓰다 / 자본화하다 / 출자하다\"}, {\"id\": \"e143\", \"en\": \"manifestation\", \"pos\": \"[명]\", \"ko\": \"(어떤 것이 존재하거나 일어나고 있음을 보여주는) 징후[표명]\"}, {\"id\": \"e144\", \"en\": \"concrete\", \"pos\": \"[형/명]\", \"ko\": \"콘크리트로 된 / 사실에 의거한, 구체적인 / 콘크리트\"}, {\"id\": \"e145\", \"en\": \"wither\", \"pos\": \"[동]\", \"ko\": \"시들다, 말라 죽다 / 약해지다, 시들어 가다\"}, {\"id\": \"e146\", \"en\": \"waiver\", \"pos\": \"[명]\", \"ko\": \"(권리 등의) 포기; 포기 서류\"}, {\"id\": \"e147\", \"en\": \"assign\", \"pos\": \"[동]\", \"ko\": \"(일·책임 등을) 맡기다[배정하다] / 선임하다 / 양도하다\"}, {\"id\": \"e148\", \"en\": \"grant\", \"pos\": \"[동/명]\", \"ko\": \"(공식·법적으로) 승인[허락]하다 / (내키지 않지만) 인정하다 / 보조금\"}, {\"id\": \"e149\", \"en\": \"constitute\", \"pos\": \"[동]\", \"ko\": \"~이 되는 것으로 여겨지다 / ~을 구성하다[이루다]\"}, {\"id\": \"e150\", \"en\": \"subsequent to\", \"pos\": \"[전치사]\", \"ko\": \"~ 다음에[뒤에]\"}, {\"id\": \"e151\", \"en\": \"duly\", \"pos\": \"[부사]\", \"ko\": \"적절한 절차에 따라, 예상대로 / 적절한 때에\"}, {\"id\": \"e152\", \"en\": \"supersede\", \"pos\": \"[동]\", \"ko\": \"대신하다, 대체하다\"}, {\"id\": \"e153\", \"en\": \"counterpart\", \"pos\": \"[명]\", \"ko\": \"(다른 상황에서 동일한 지위나 기능을 갖는) 상대, 대응 관계에 있는 사람[것]\"}, {\"id\": \"e154\", \"en\": \"construe\", \"pos\": \"[동]\", \"ko\": \"~을 (~으로) 이해[해석]하다\"}, {\"id\": \"e155\", \"en\": \"remedy\", \"pos\": \"[명/동]\", \"ko\": \"처리 방안, 해결[개선]책 / 치료(약) / 바로잡다\"}, {\"id\": \"e156\", \"en\": \"proprietary\", \"pos\": \"[형]\", \"ko\": \"등록[전매] 상표가 붙은 / 소유주[자]의\"}, {\"id\": \"e157\", \"en\": \"amendment\", \"pos\": \"[명]\", \"ko\": \"(법 등의) 개정[수정] / 미국 헌법 수정 조항\"}, {\"id\": \"e158\", \"en\": \"sabotage\", \"pos\": \"[명/동]\", \"ko\": \"사보타주, (고의적인) 방해 행위 / 방해하다\"}, {\"id\": \"e159\", \"en\": \"jurisdiction\", \"pos\": \"[명]\", \"ko\": \"관할권; 사법권 / 관할 구역\"}, {\"id\": \"e160\", \"en\": \"ombudsman\", \"pos\": \"[명]\", \"ko\": \"옴부즈맨, 행정감찰관 (시민의 고충 처리를 담당하는 공무원)\"}, {\"id\": \"e161\", \"en\": \"memorandum\", \"pos\": \"[명]\", \"ko\": \"(아직 정식으로 서명되지 않은) 각서 / (특정 주제에 대한) 제안서[보고서]\"}, {\"id\": \"e162\", \"en\": \"indigenization\", \"pos\": \"[명]\", \"ko\": \"현지 (기업) 우선, 현지인 우선 채용\"}, {\"id\": \"e163\", \"en\": \"abbreviation\", \"pos\": \"[명]\", \"ko\": \"(~의) 축약형 / 축약\"}, {\"id\": \"e164\", \"en\": \"write-off\", \"pos\": \"[명]\", \"ko\": \"(부채) 탕감 / 폐차 처리 / 공치는 시간\"}, {\"id\": \"e165\", \"en\": \"articulate\", \"pos\": \"[동/형]\", \"ko\": \"(생각·감정을) 분명히 표현하다 / 또렷이 말하다 / 잘 표현하는\"}, {\"id\": \"e166\", \"en\": \"presence\", \"pos\": \"[명]\", \"ko\": \"(특정한 곳에) 있음, 존재(함) / 주둔군 / 존재감\"}, {\"id\": \"e167\", \"en\": \"backdrop\", \"pos\": \"[명]\", \"ko\": \"(무대의) 배경(막) / (사건의) 배경[환경]\"}, {\"id\": \"e168\", \"en\": \"clamp\", \"pos\": \"[동/명]\", \"ko\": \"죔쇠로 고정시키다 / 꽉 물다[잡다] / 죔쇠\"}, {\"id\": \"e169\", \"en\": \"intuitive\", \"pos\": \"[형]\", \"ko\": \"직감[직관]에 의한 / 이해하기[사용하기] 쉬운\"}, {\"id\": \"e170\", \"en\": \"aspect\", \"pos\": \"[명]\", \"ko\": \"측면, 양상 / (건물·땅의) 방향\"}, {\"id\": \"e171\", \"en\": \"incorporate\", \"pos\": \"[동]\", \"ko\": \"(일부로) 포함하다 / (법인체를) 설립[창립]하다\"}, {\"id\": \"e172\", \"en\": \"hypothetical\", \"pos\": \"[형]\", \"ko\": \"가상적인, 가설[가정]의\"}, {\"id\": \"e173\", \"en\": \"signify\", \"pos\": \"[동]\", \"ko\": \"의미하다, 뜻하다 / (행동으로 감정을) 나타내다 / 중요하다\"}, {\"id\": \"e174\", \"en\": \"commonality\", \"pos\": \"[명]\", \"ko\": \"공통성\"}, {\"id\": \"e175\", \"en\": \"asset\", \"pos\": \"[명]\", \"ko\": \"자산(이 되는 사람·물건) / (부동산과 같은) 자산, 재산\"}, {\"id\": \"e176\", \"en\": \"monetary\", \"pos\": \"[형]\", \"ko\": \"통화[화폐]의\"}, {\"id\": \"e177\", \"en\": \"magnitude\", \"pos\": \"[명]\", \"ko\": \"(엄청난) 규모[중요도] / (별의) 광도 / 지진 규모\"}, {\"id\": \"e178\", \"en\": \"accrued\", \"pos\": \"[형]\", \"ko\": \"발생한, (취득했지만) 미수의, (부담했지만) 미불의\"}, {\"id\": \"e179\", \"en\": \"accrued liabilities\", \"pos\": \"[명]\", \"ko\": \"미불부채, 예상부채 (법인 유동부채의 한 항목)\"}, {\"id\": \"e180\", \"en\": \"implicitly\", \"pos\": \"[부사]\", \"ko\": \"함축적으로 / 무조건[절대적]으로\"}, {\"id\": \"e181\", \"en\": \"merit\", \"pos\": \"[명/동]\", \"ko\": \"가치; 훌륭함 / 장점 / 받을 만하다\"}, {\"id\": \"e182\", \"en\": \"pragmatic\", \"pos\": \"[형]\", \"ko\": \"실용적인\"}, {\"id\": \"e183\", \"en\": \"excess\", \"pos\": \"[명/형]\", \"ko\": \"(어떤 정도를) 지나침, 과도, 과잉 / 초과한\"}, {\"id\": \"e184\", \"en\": \"assessment\", \"pos\": \"[명]\", \"ko\": \"평가(한 의견) / 평가 행위 / 평가[사정] 액\"}, {\"id\": \"e185\", \"en\": \"compile\", \"pos\": \"[동]\", \"ko\": \"(여러 출처에서 자료를 따와) 엮다, 편집[편찬]하다\"}, {\"id\": \"e186\", \"en\": \"assertion\", \"pos\": \"[명]\", \"ko\": \"(사실임을) 주장 / (권리 등의) 행사\"}, {\"id\": \"e187\", \"en\": \"phenomenal\", \"pos\": \"[형]\", \"ko\": \"경이적인, 경탄스러운\"}, {\"id\": \"e188\", \"en\": \"dampen\", \"pos\": \"[동]\", \"ko\": \"(물에) 축이다[적시다] / (감정·반응의 기세를) 꺾다[약화시키다]\"}, {\"id\": \"e189\", \"en\": \"focal\", \"pos\": \"[형]\", \"ko\": \"중심의; 초점의\"}, {\"id\": \"e190\", \"en\": \"excerpt\", \"pos\": \"[명]\", \"ko\": \"(글·음악·영화 등의) 발췌[인용] (부분)\"}, {\"id\": \"e191\", \"en\": \"shrift\", \"pos\": \"[명]\", \"ko\": \"고해[참회]; 임종 고해 (short shrift: 냉담한 취급)\"}, {\"id\": \"e192\", \"en\": \"articulation\", \"pos\": \"[명]\", \"ko\": \"(말로 하는) 표현 / 발화; 조음(調音) / 관절\"}, {\"id\": \"e193\", \"en\": \"performance\", \"pos\": \"[명]\", \"ko\": \"공연, 연주회 / 실적, 성과 / (과제의) 수행[실행]\"}, {\"id\": \"e194\", \"en\": \"contemplate\", \"pos\": \"[동]\", \"ko\": \"(어떤 일의 가부나 방법에 대해) 고려하다[생각하다] / 심사숙고하다\"}, {\"id\": \"e195\", \"en\": \"venue\", \"pos\": \"[명]\", \"ko\": \"(콘서트·스포츠 경기·회담 등의) 장소\"}, {\"id\": \"e196\", \"en\": \"hold harmless\", \"pos\": \"[구]\", \"ko\": \"보호하다; (손해가 생겨도) 책임을 면제하다\"}, {\"id\": \"e197\", \"en\": \"coverage\", \"pos\": \"[명]\", \"ko\": \"(신문·텔레비전의) 보도[방송] / (정보의) 범위 / 보급(률)\"}, {\"id\": \"e198\", \"en\": \"exhibit\", \"pos\": \"[동/명]\", \"ko\": \"전시하다 / (감정·특질을) 보이다[드러내다] / 전시품\"}, {\"id\": \"e199\", \"en\": \"statute\", \"pos\": \"[명]\", \"ko\": \"법규, 법령 / (조직·기관의) 규정\"}, {\"id\": \"e200\", \"en\": \"security\", \"pos\": \"[명]\", \"ko\": \"보안, 경비, 안보 / (미래를 위한) 보장 / 담보 / 유가 증권\"}, {\"id\": \"e201\", \"en\": \"term\", \"pos\": \"[명/동]\", \"ko\": \"용어, 말 / 학기 / (지속되는) 기간 / (이름으로) 칭하다\"}, {\"id\": \"e202\", \"en\": \"cessation\", \"pos\": \"[명]\", \"ko\": \"중단, 중지\"}, {\"id\": \"e203\", \"en\": \"award\", \"pos\": \"[명/동]\", \"ko\": \"(부상이 딸린) 상 / 수여하다 / 지급 판정을 내리다\"}, {\"id\": \"e204\", \"en\": \"overhead\", \"pos\": \"[형/명]\", \"ko\": \"(비용이) 간접비의 / 간접비[경비]\"}, {\"id\": \"e205\", \"en\": \"terms\", \"pos\": \"[명]\", \"ko\": \"(합의·계약 등의) 조건 / (지불) 조건, 가격\"}, {\"id\": \"e206\", \"en\": \"release\", \"pos\": \"[동/명]\", \"ko\": \"석방[해방]하다 / (대중에게) 공개[발표]하다 / 발매 음반\"}, {\"id\": \"e207\", \"en\": \"development\", \"pos\": \"[명]\", \"ko\": \"발달, 성장 / (신제품의) 개발 / 새로이 전개된 사건[국면]\"}, {\"id\": \"e208\", \"en\": \"title\", \"pos\": \"[명/동]\", \"ko\": \"제목, 표제 / 칭호, 작위 / (부동산) 소유권\"}, {\"id\": \"e209\", \"en\": \"document\", \"pos\": \"[명/동]\", \"ko\": \"서류, 문서 / (상세한 내용을) 기록하다\"}, {\"id\": \"e210\", \"en\": \"exercise\", \"pos\": \"[명/동]\", \"ko\": \"(신체적) 운동 / (권력·권리 등의) 행사[발휘]하다\"}, {\"id\": \"e211\", \"en\": \"provision\", \"pos\": \"[명]\", \"ko\": \"공급, 제공 / 대비, 준비 / (법률 문서의) 조항[규정]\"}, {\"id\": \"e212\", \"en\": \"current assets\", \"pos\": \"[명]\", \"ko\": \"유동 자산\"}, {\"id\": \"e213\", \"en\": \"stockholder's equity\", \"pos\": \"[명]\", \"ko\": \"(주식회사의) 자본 / 주주지분\"}, {\"id\": \"e214\", \"en\": \"cash equivalents\", \"pos\": \"[명]\", \"ko\": \"현금등가액\"}, {\"id\": \"e215\", \"en\": \"warranty liability\", \"pos\": \"[명]\", \"ko\": \"담보책임\"}, {\"id\": \"e216\", \"en\": \"or otherwise\", \"pos\": \"[구]\", \"ko\": \"(앞에 언급한 것과) 다른 것인지/것이든, 그 반대이든\"}, {\"id\": \"e217\", \"en\": \"wither\", \"pos\": \"[동]\", \"ko\": \"시들다, 말라 죽다 / 약해지다, 시들어 가다\"}, {\"id\": \"c1773580881848\", \"en\": \"pummeling\", \"pos\": \"[동]\", \"ko\": \"주먹으로 연거푸 때리기, 혹독하게 패배시키기, 호되게 비판하기\"}, {\"id\": \"c1773580888548\", \"en\": \"concessions\", \"pos\": \"[명]\", \"ko\": \"양보, 양보사항, 특허권\"}, {\"id\": \"c1773581166276\", \"en\": \"windfall\", \"pos\": \"[명]\", \"ko\": \"횡재, 뜻밖의 횡재(특히 돈), 바람에 떨어진 과일\"}, {\"id\": \"c1773625808401\", \"en\": \"diaspora\", \"pos\": \"[명]\", \"ko\": \"디아스포라, 이산\"}, {\"id\": \"c1773626724671\", \"en\": \"discussion\", \"pos\": \"명사\", \"ko\": \"토론, 논의\"}, {\"id\": \"c1773630707760\", \"en\": \"poised to\", \"pos\": \"형용사구\", \"ko\": \"~할 준비가 된, ~하려는 참인\"}]");
+
+var customWords = [];
+var wrongAnswers = {};
+var quizStats = {total:0, correct:0, sessions:0};
+var currentFilter = 'all';
+var currentSearch = '';
+var currentPage = 1;
+var PAGE_SIZE = 30;
+var quizMode = 'en-ko';
+var quizWords = [];
+var quizIndex = 0;
+var quizCorrect = 0;
+var quizSessionWrong = [];
+var aiResultData = null;
+
+function loadData() {
+  try { var s = localStorage.getItem('fc_custom'); if(s) customWords = JSON.parse(s); } catch(e){}
+  try { var s = localStorage.getItem('fc_wrong'); if(s) wrongAnswers = JSON.parse(s); } catch(e){}
+  try { var s = localStorage.getItem('fc_stats'); if(s) quizStats = JSON.parse(s); } catch(e){}
+  var key = localStorage.getItem('fc_apikey');
+  if(key) {
+    document.getElementById('apiKeyInput').value = key;
+    document.getElementById('apiStatus').textContent = '설정됨';
+    document.getElementById('apiStatus').className = 'api-status ok';
+  }
+}
+
+function saveData() {
+  localStorage.setItem('fc_custom', JSON.stringify(customWords));
+  localStorage.setItem('fc_wrong', JSON.stringify(wrongAnswers));
+  localStorage.setItem('fc_stats', JSON.stringify(quizStats));
+}
+
+function allWords() { return BUILTIN.concat(customWords); }
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+  document.getElementById('page-' + name).classList.add('active');
+  var tabs = document.querySelectorAll('.tab');
+  var map = {list:0, quiz:1, add:2, wrong:3, export:4};
+  tabs[map[name]].classList.add('active');
+  if(name==='list') renderList();
+  if(name==='wrong') renderWrong();
+  if(name==='export') renderStats();
+  if(name==='quiz') renderQuizStats();
+}
+
+function getFiltered() {
+  var words = allWords();
+  if(currentFilter !== 'all') {
+    words = words.filter(function(w){ return w.pos && w.pos.indexOf(currentFilter) >= 0; });
+  }
+  if(currentSearch) {
+    var q = currentSearch.toLowerCase();
+    words = words.filter(function(w){ return w.en.toLowerCase().indexOf(q) >= 0 || w.ko.indexOf(currentSearch) >= 0; });
+  }
+  return words;
+}
+
+function renderList() {
+  var words = getFiltered();
+  var total = words.length;
+  var totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if(currentPage > totalPages) currentPage = 1;
+  var start = (currentPage-1) * PAGE_SIZE;
+  var slice = words.slice(start, start + PAGE_SIZE);
+
+  document.getElementById('wordCount').textContent = allWords().length + '개';
+
+  var list = document.getElementById('wordList');
+  if(slice.length === 0) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div>검색 결과 없음</div>';
+  } else {
+    var html = '';
+    for(var i=0; i<slice.length; i++) {
+      var w = slice[i];
+      var isWrong = wrongAnswers[w.id];
+      var enSafe = w.en.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      html += '<div class="word-card">';
+      html += '<div class="word-info">';
+      html += '<div class="word-en">' + escHtml(w.en) + '</div>';
+      html += '<div class="word-pos">' + escHtml(w.pos||'') + '</div>';
+      html += '<div class="word-ko">' + escHtml(w.ko) + '</div>';
+      html += '</div>';
+      html += '<div class="word-actions">';
+      html += '<button class="btn-icon" onclick="tts(\'' + enSafe + '\')">🔊</button>';
+      if(isWrong) html += '<button class="btn-icon" style="color:var(--red)" onclick="removeWrong(\'' + w.id + '\')">❌</button>';
+      html += '</div></div>';
+    }
+    list.innerHTML = html;
+  }
+
+  var pag = document.getElementById('pagination');
+  if(totalPages <= 1) { pag.innerHTML = ''; return; }
+  pag.innerHTML = '<button class="btn-page" onclick="goPage(' + (currentPage-1) + ')" ' + (currentPage===1?'disabled':'') + '>◀</button>' +
+    '<span class="page-info">' + currentPage + ' / ' + totalPages + '</span>' +
+    '<button class="btn-page" onclick="goPage(' + (currentPage+1) + ')" ' + (currentPage===totalPages?'disabled':'') + '>▶</button>';
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function goPage(p) { currentPage = p; renderList(); window.scrollTo(0,0); }
+function filterWords() { currentSearch = document.getElementById('searchInput').value; currentPage = 1; renderList(); }
+function clearSearch() { document.getElementById('searchInput').value = ''; currentSearch = ''; currentPage = 1; renderList(); }
+function setFilter(f, el) {
+  currentFilter = f;
+  document.querySelectorAll('.chip').forEach(function(c){ c.classList.remove('active'); });
+  el.classList.add('active');
+  currentPage = 1;
+  renderList();
+}
+
+function tts(text) {
+  if(!window.speechSynthesis) return;
+  var u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-US';
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(u);
+}
+
+function removeWrong(id) { delete wrongAnswers[id]; saveData(); renderList(); }
+
+function setQuizMode(mode) {
+  quizMode = mode;
+  document.getElementById('modeBtn1').className = 'quiz-mode-btn' + (mode==='en-ko'?' active':'');
+  document.getElementById('modeBtn2').className = 'quiz-mode-btn' + (mode==='ko-en'?' active':'');
+}
+
+function startQuiz() {
+  var count = parseInt(document.getElementById('quizCount').value);
+  var words = allWords();
+  if(words.length < 4) { showToast('단어가 4개 이상 필요합니다', 'error'); return; }
+  quizWords = shuffle(words).slice(0, Math.min(count, words.length));
+  quizIndex = 0; quizCorrect = 0; quizSessionWrong = [];
+  document.getElementById('quizSetup').style.display = 'none';
+  document.getElementById('quizActive').style.display = 'block';
+  document.getElementById('quizResult').style.display = 'none';
+  renderQuizQuestion();
+}
+
+function renderQuizQuestion() {
+  var w = quizWords[quizIndex];
+  var total = quizWords.length;
+  document.getElementById('quizProgress').textContent = (quizIndex+1) + ' / ' + total;
+  document.getElementById('quizScoreDisplay').textContent = '정답: ' + quizCorrect;
+  document.getElementById('progressFill').style.width = ((quizIndex/total)*100) + '%';
+  document.getElementById('quizPos').textContent = w.pos || '';
+  if(quizMode === 'en-ko') {
+    document.getElementById('quizQuestion').textContent = w.en;
+    document.getElementById('quizSub').textContent = '한국어 뜻은?';
+  } else {
+    document.getElementById('quizQuestion').textContent = w.ko;
+    document.getElementById('quizSub').textContent = '영어 단어는?';
+  }
+  var others = allWords().filter(function(x){ return x.id !== w.id; });
+  var wrong3 = shuffle(others).slice(0,3);
+  var opts = shuffle([w].concat(wrong3));
+  var html = '';
+  for(var i=0; i<opts.length; i++) {
+    var o = opts[i];
+    var label = quizMode === 'en-ko' ? o.ko : o.en;
+    html += '<button class="opt-btn" data-id="' + o.id + '" onclick="selectAnswer(\'' + o.id + '\',\'' + w.id + '\')">' + escHtml(label) + '</button>';
+  }
+  document.getElementById('quizOptions').innerHTML = html;
+}
+
+function selectAnswer(selectedId, correctId) {
+  var btns = document.querySelectorAll('.opt-btn');
+  btns.forEach(function(b){ b.disabled = true; });
+  var words = allWords();
+  var correctWord = null;
+  for(var i=0; i<words.length; i++) { if(words[i].id === correctId) { correctWord = words[i]; break; } }
+
+  btns.forEach(function(b){
+    if(b.dataset.id === correctId) b.classList.add('correct');
+    if(b.dataset.id === selectedId && selectedId !== correctId) b.classList.add('wrong-ans');
+  });
+
+  if(selectedId !== correctId) {
+    wrongAnswers[correctId] = (wrongAnswers[correctId]||0) + 1;
+    quizSessionWrong.push(correctWord);
+  } else {
+    quizCorrect++;
+  }
+
+  setTimeout(function(){
+    quizIndex++;
+    if(quizIndex >= quizWords.length) endQuiz();
+    else renderQuizQuestion();
+  }, 900);
+}
+
+function endQuiz() {
+  quizStats.total += quizWords.length;
+  quizStats.correct += quizCorrect;
+  quizStats.sessions++;
+  saveData();
+  document.getElementById('quizActive').style.display = 'none';
+  document.getElementById('quizResult').style.display = 'block';
+  var rate = Math.round((quizCorrect / quizWords.length) * 100);
+  document.getElementById('resultScore').textContent = quizCorrect + '/' + quizWords.length;
+  document.getElementById('resultSub').textContent = '정답률 ' + rate + '%';
+  var emoji = rate>=90?'🎉':rate>=70?'👍':rate>=50?'💪':'😅';
+  document.getElementById('resultEmoji').textContent = emoji;
+  var wl = document.getElementById('wrongList');
+  if(quizSessionWrong.length === 0) {
+    wl.innerHTML = '<div style="text-align:center;color:var(--green);padding:10px">전부 맞혔습니다! 🎊</div>';
+  } else {
+    var html = '<div style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:8px">틀린 단어 (' + quizSessionWrong.length + '개)</div>';
+    for(var i=0; i<quizSessionWrong.length; i++) {
+      var w = quizSessionWrong[i];
+      html += '<div class="wrong-card"><div class="word-en">' + escHtml(w.en) + '</div><div class="word-ko" style="color:var(--muted);font-size:13px">' + escHtml(w.ko) + '</div></div>';
+    }
+    wl.innerHTML = html;
+  }
+  renderQuizStats();
+}
+
+function stopQuiz() {
+  document.getElementById('quizSetup').style.display = 'block';
+  document.getElementById('quizActive').style.display = 'none';
+  document.getElementById('quizResult').style.display = 'none';
+}
+
+function restartQuiz() { stopQuiz(); startQuiz(); }
+
+function renderQuizStats() {
+  document.getElementById('statTotal').textContent = quizStats.total;
+  var rate = quizStats.total > 0 ? Math.round((quizStats.correct/quizStats.total)*100) : 0;
+  document.getElementById('statRate').textContent = rate + '%';
+}
+
+function saveApiKey() {
+  var key = document.getElementById('apiKeyInput').value.trim();
+  if(!key) { showToast('API 키를 입력하세요', 'error'); return; }
+  localStorage.setItem('fc_apikey', key);
+  document.getElementById('apiStatus').textContent = '설정됨';
+  document.getElementById('apiStatus').className = 'api-status ok';
+  showToast('API 키 저장 완료', 'success');
+}
+
+async function aiSearch() {
+  var word = document.getElementById('aiSearchInput').value.trim();
+  if(!word) return;
+  var apiKey = localStorage.getItem('fc_apikey');
+  if(!apiKey) { showToast('API 키를 먼저 설정하세요', 'error'); return; }
+  var btn = document.getElementById('aiSearchBtn');
+  btn.innerHTML = '<span class="loading"></span>';
+  btn.disabled = true;
+  try {
+    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 200,
+        messages: [{
+          role: 'user',
+          content: '영어 단어 "' + word + '"의 정보를 JSON으로만 답하세요 (설명 없이):\n{"en":"' + word + '","pos":"[품사]","ko":"뜻 (간결하게, 뉘앙스 포함)"}'
+        }]
+      })
+    });
+    var data = await resp.json();
+    if(!resp.ok) throw new Error(data.error ? data.error.message : 'API 오류');
+    var text = data.content[0].text.replace(/```json|```/g,'').trim();
+    aiResultData = JSON.parse(text);
+    aiResultData.id = 'c' + Date.now();
+    document.getElementById('aiResultContent').innerHTML =
+      '<div class="ai-result-en">' + escHtml(aiResultData.en) + ' <span style="font-size:13px;color:var(--accent2)">' + escHtml(aiResultData.pos) + '</span></div>' +
+      '<div class="ai-result-ko">' + escHtml(aiResultData.ko) + '</div>';
+    document.getElementById('aiResultBox').style.display = 'block';
+  } catch(e) {
+    showToast('검색 실패: ' + e.message, 'error');
+  } finally {
+    btn.innerHTML = '검색';
+    btn.disabled = false;
+  }
+}
+
+function addFromAI() {
+  if(!aiResultData) return;
+  addWord(aiResultData);
+  document.getElementById('aiSearchInput').value = '';
+  document.getElementById('aiResultBox').style.display = 'none';
+  aiResultData = null;
+}
+
+function addManual() {
+  var en = document.getElementById('manualEn').value.trim();
+  var pos = document.getElementById('manualPos').value.trim();
+  var ko = document.getElementById('manualKo').value.trim();
+  if(!en || !ko) { showToast('단어와 뜻을 입력하세요', 'error'); return; }
+  addWord({id:'c'+Date.now(), en:en, pos:pos, ko:ko});
+  document.getElementById('manualEn').value = '';
+  document.getElementById('manualPos').value = '';
+  document.getElementById('manualKo').value = '';
+}
+
+function addWord(w) {
+  var all = allWords();
+  for(var i=0; i<all.length; i++) {
+    if(all[i].en.toLowerCase() === w.en.toLowerCase()) { showToast('이미 있는 단어입니다', 'error'); return; }
+  }
+  customWords.push(w);
+  saveData();
+  document.getElementById('wordCount').textContent = allWords().length + '개';
+  showToast('추가 완료: ' + w.en, 'success');
+}
+
+function renderWrong() {
+  var words = allWords();
+  var entries = [];
+  var keys = Object.keys(wrongAnswers);
+  for(var i=0; i<keys.length; i++) {
+    var id = keys[i];
+    var word = null;
+    for(var j=0; j<words.length; j++) { if(words[j].id === id) { word = words[j]; break; } }
+    if(word) entries.push({word:word, cnt:wrongAnswers[id]});
+  }
+  entries.sort(function(a,b){ return b.cnt - a.cnt; });
+  document.getElementById('wrongTotal').textContent = '(' + entries.length + '개)';
+  var el = document.getElementById('wrongNoteList');
+  if(entries.length === 0) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">✅</div>오답 단어 없음</div>';
+    return;
+  }
+  var html = '';
+  for(var i=0; i<entries.length; i++) {
+    var e = entries[i];
+    var enSafe = e.word.en.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    html += '<div class="wrong-card">';
+    html += '<div class="wrong-count">❌ ' + e.cnt + '회 틀림</div>';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center">';
+    html += '<div><div class="word-en">' + escHtml(e.word.en) + ' <span style="font-size:12px;color:var(--accent2)">' + escHtml(e.word.pos||'') + '</span></div>';
+    html += '<div class="word-ko" style="color:var(--muted);font-size:13px">' + escHtml(e.word.ko) + '</div></div>';
+    html += '<div style="display:flex;gap:6px">';
+    html += '<button class="btn-icon" onclick="tts(\'' + enSafe + '\')">🔊</button>';
+    html += '<button class="btn-icon" onclick="removeWrong(\'' + e.word.id + '\')">🗑️</button>';
+    html += '</div></div></div>';
+  }
+  el.innerHTML = html;
+}
+
+function clearWrong() {
+  if(!confirm('오답노트를 전부 초기화할까요?')) return;
+  wrongAnswers = {}; saveData(); renderWrong();
+}
+
+function renderStats() {
+  var all = allWords();
+  document.getElementById('statWords').textContent = all.length;
+  document.getElementById('statCustom').textContent = customWords.length;
+  document.getElementById('statWrong').textContent = Object.keys(wrongAnswers).length;
+  document.getElementById('statQuizDone').textContent = quizStats.sessions;
+}
+
+function exportData() {
+  var data = {custom:customWords, qs:{n:quizStats.total,c:quizStats.correct}, wrong:wrongAnswers, exportedAt:new Date().toISOString()};
+  var blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = 'en_flashcard_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click(); URL.revokeObjectURL(url);
+  showToast('내보내기 완료', 'success');
+}
+
+function importData(e) {
+  var file = e.target.files[0];
+  if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      var data = JSON.parse(ev.target.result);
+      var added = 0;
+      var existing = allWords().map(function(w){ return w.en.toLowerCase(); });
+      if(data.custom) {
+        data.custom.forEach(function(w){
+          if(existing.indexOf(w.en.toLowerCase()) < 0) { customWords.push(w); added++; }
+        });
+      }
+      if(data.wrong) Object.assign(wrongAnswers, data.wrong);
+      saveData(); renderStats();
+      document.getElementById('wordCount').textContent = allWords().length + '개';
+      showToast(added + '개 단어 가져오기 완료', 'success');
+    } catch(err) { showToast('파일 형식 오류', 'error'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function resetCustom() {
+  if(!confirm('추가한 단어(' + customWords.length + '개)를 삭제할까요?')) return;
+  customWords = []; saveData(); renderStats();
+  document.getElementById('wordCount').textContent = allWords().length + '개';
+  showToast('초기화 완료', 'success');
+}
+
+function shuffle(arr) {
+  var a = arr.slice();
+  for(var i=a.length-1; i>0; i--) {
+    var j = Math.floor(Math.random()*(i+1));
+    var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+  }
+  return a;
+}
+
+function showToast(msg, type) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' ' + type : '');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function(){ t.className = 'toast'; }, 2500);
+}
+
+loadData();
+renderList();
+</script>
+</body>
+</html>
