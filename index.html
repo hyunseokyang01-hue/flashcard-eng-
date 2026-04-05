@@ -101,6 +101,20 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, sa
 .empty { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 14px; }
 .empty-icon { font-size: 40px; margin-bottom: 10px; }
 .section-divider { height: 1px; background: var(--border); margin: 16px 0; }
+/* SR & Article Tag styles */
+.sr-badge { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 10px; margin-left: 6px; }
+.sr-due { background: rgba(247,201,72,0.2); color: var(--yellow); border: 1px solid rgba(247,201,72,0.4); }
+.sr-new { background: rgba(79,142,247,0.15); color: var(--accent); border: 1px solid rgba(79,142,247,0.3); }
+.sr-ok { background: rgba(62,207,142,0.15); color: var(--green); border: 1px solid rgba(62,207,142,0.3); }
+.article-tag { display: inline-block; font-size: 10px; color: var(--accent2); background: rgba(124,92,252,0.12); border: 1px solid rgba(124,92,252,0.25); border-radius: 6px; padding: 1px 6px; margin-top: 3px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sr-due-count { display: inline-block; background: var(--yellow); color: #1a1d27; font-size: 11px; font-weight: 700; border-radius: 10px; padding: 2px 7px; margin-left: 6px; }
+.article-filter-row { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 10px; scrollbar-width: none; padding-bottom: 2px; }
+.article-filter-row::-webkit-scrollbar { display: none; }
+.article-chip { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; cursor: pointer; border: 1.5px solid var(--border); background: var(--surface); color: var(--muted); white-space: nowrap; flex-shrink: 0; }
+.article-chip.active { border-color: var(--accent2); color: var(--accent2); background: rgba(124,92,252,0.1); }
+.sr-info-box { background: var(--card); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+.sr-info-label { font-size: 13px; color: var(--muted); }
+.sr-info-num { font-size: 20px; font-weight: 700; color: var(--yellow); }
 </style>
 </head>
 <body>
@@ -134,6 +148,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, sa
       <div class="chip" onclick="setFilter('[부사]',this)">[부사]</div>
       <div class="chip" onclick="setFilter('[구]',this)">[구]</div>
     </div>
+    <div class="article-filter-row" id="articleFilterRow"></div>
     <div id="wordList" class="word-list"></div>
     <div class="pagination" id="pagination"></div>
   </div>
@@ -146,6 +161,17 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, sa
         <div class="quiz-controls">
           <button class="quiz-mode-btn active" id="modeBtn1" onclick="setQuizMode('en-ko')">영 to 한</button>
           <button class="quiz-mode-btn" id="modeBtn2" onclick="setQuizMode('ko-en')">한 to 영</button>
+        </div>
+        <div class="sr-info-box" id="srInfoBox">
+          <div>
+            <div class="sr-info-label">🔁 오늘 복습 예정</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">Spaced Repetition 기반</div>
+          </div>
+          <div class="sr-info-num" id="srDueCount">0</div>
+        </div>
+        <div class="quiz-controls" style="margin-bottom:14px">
+          <button class="quiz-mode-btn" id="modeBtnSR" onclick="setQuizType('sr')" style="border-color:var(--yellow);color:var(--yellow)">🔁 SR 복습</button>
+          <button class="quiz-mode-btn active" id="modeBtnAll" onclick="setQuizType('all')">전체</button>
         </div>
         <label class="form-label">문제 수</label>
         <select id="quizCount" class="form-input">
@@ -212,6 +238,14 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, sa
         <button class="btn btn-ai" onclick="addFromAI()">+ 단어장에 추가</button>
       </div>
     </div>
+    <div class="section-box" style="margin-top:-6px">
+      <label class="form-label">📰 기사 태그 (선택)</label>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+        <input type="text" id="articleTagInput" class="form-input" placeholder="예: WSJ 2026-04-05 · Tariffs" style="margin:0;flex:1">
+        <button class="btn btn-secondary" onclick="saveArticleTag()" style="white-space:nowrap">저장</button>
+      </div>
+      <div id="currentArticleDisplay" style="font-size:12px;color:var(--muted)">현재 태그 없음 — 단어 추가 시 이 태그가 자동 적용됩니다</div>
+    </div>
     <div class="section-divider"></div>
     <div class="section-box">
       <label class="form-label">직접 입력</label>
@@ -265,11 +299,15 @@ var BUILTIN = JSON.parse("[{\"id\": \"e001\", \"en\": \"interim\", \"pos\": \"[�
 var customWords = [];
 var wrongAnswers = {};
 var quizStats = {total:0, correct:0, sessions:0};
+var srData = {}; // {wordId: {interval, ef, nextReview, reps}}
+var currentArticleTag = '';
+var currentArticleFilter = 'all';
 var currentFilter = 'all';
 var currentSearch = '';
 var currentPage = 1;
 var PAGE_SIZE = 30;
 var quizMode = 'en-ko';
+var quizType = 'all'; // 'all' or 'sr'
 var quizWords = [];
 var quizIndex = 0;
 var quizCorrect = 0;
@@ -280,6 +318,8 @@ function loadData() {
   try { var s = localStorage.getItem('fc_custom'); if(s) customWords = JSON.parse(s); } catch(e){}
   try { var s = localStorage.getItem('fc_wrong'); if(s) wrongAnswers = JSON.parse(s); } catch(e){}
   try { var s = localStorage.getItem('fc_stats'); if(s) quizStats = JSON.parse(s); } catch(e){}
+  try { var s = localStorage.getItem('fc_sr'); if(s) srData = JSON.parse(s); } catch(e){}
+  try { var s = localStorage.getItem('fc_article_tag'); if(s) { currentArticleTag = s; updateArticleTagDisplay(); } } catch(e){}
   var key = localStorage.getItem('fc_apikey');
   if(key) {
     document.getElementById('apiKeyInput').value = key;
@@ -292,6 +332,7 @@ function saveData() {
   localStorage.setItem('fc_custom', JSON.stringify(customWords));
   localStorage.setItem('fc_wrong', JSON.stringify(wrongAnswers));
   localStorage.setItem('fc_stats', JSON.stringify(quizStats));
+  localStorage.setItem('fc_sr', JSON.stringify(srData));
 }
 
 function allWords() { return BUILTIN.concat(customWords); }
@@ -303,16 +344,19 @@ function showPage(name) {
   var tabs = document.querySelectorAll('.tab');
   var map = {list:0, quiz:1, add:2, wrong:3, export:4};
   tabs[map[name]].classList.add('active');
-  if(name==='list') renderList();
+  if(name==='list') { renderArticleFilters(); renderList(); }
   if(name==='wrong') renderWrong();
   if(name==='export') renderStats();
-  if(name==='quiz') renderQuizStats();
+  if(name==='quiz') { renderQuizStats(); renderSRDueCount(); }
 }
 
 function getFiltered() {
   var words = allWords();
   if(currentFilter !== 'all') {
     words = words.filter(function(w){ return w.pos && w.pos.indexOf(currentFilter) >= 0; });
+  }
+  if(currentArticleFilter !== 'all') {
+    words = words.filter(function(w){ return w.articleTag === currentArticleFilter; });
   }
   if(currentSearch) {
     var q = currentSearch.toLowerCase();
@@ -340,11 +384,12 @@ function renderList() {
       var w = slice[i];
       var isWrong = wrongAnswers[w.id];
       var enSafe = w.en.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      var srBadge = getSRBadge(w.id);
       html += '<div class="word-card">';
       html += '<div class="word-info">';
-      html += '<div class="word-en">' + escHtml(w.en) + '</div>';
-      html += '<div class="word-pos">' + escHtml(w.pos||'') + '</div>';
+      html += '<div class="word-en">' + escHtml(w.en) + ' <span class="word-pos">' + escHtml(w.pos||'') + '</span>' + srBadge + '</div>';
       html += '<div class="word-ko">' + escHtml(w.ko) + '</div>';
+      if(w.articleTag) html += '<div class="article-tag">📰 ' + escHtml(w.articleTag) + '</div>';
       html += '</div>';
       html += '<div class="word-actions">';
       html += '<button class="btn-icon" onclick="tts(\'' + enSafe + '\')">🔊</button>';
@@ -376,6 +421,28 @@ function setFilter(f, el) {
   renderList();
 }
 
+function setArticleFilter(tag, el) {
+  currentArticleFilter = tag;
+  document.querySelectorAll('.article-chip').forEach(function(c){ c.classList.remove('active'); });
+  el.classList.add('active');
+  currentPage = 1;
+  renderList();
+}
+
+function renderArticleFilters() {
+  var words = allWords();
+  var tags = {};
+  words.forEach(function(w){ if(w.articleTag) tags[w.articleTag] = (tags[w.articleTag]||0)+1; });
+  var tagList = Object.keys(tags);
+  var el = document.getElementById('articleFilterRow');
+  if(tagList.length === 0) { el.innerHTML = ''; return; }
+  var html = '<div class="article-chip active" onclick="setArticleFilter(\'all\',this)">전체 기사</div>';
+  tagList.forEach(function(tag){
+    html += '<div class="article-chip" onclick="setArticleFilter(\'' + escHtml(tag) + '\',this)">📰 ' + escHtml(tag) + ' <span style="opacity:0.6">(' + tags[tag] + ')</span></div>';
+  });
+  el.innerHTML = html;
+}
+
 function tts(text) {
   if(!window.speechSynthesis) return;
   var u = new SpeechSynthesisUtterance(text);
@@ -392,11 +459,104 @@ function setQuizMode(mode) {
   document.getElementById('modeBtn2').className = 'quiz-mode-btn' + (mode==='ko-en'?' active':'');
 }
 
+function setQuizType(type) {
+  quizType = type;
+  var srBtn = document.getElementById('modeBtnSR');
+  var allBtn = document.getElementById('modeBtnAll');
+  if(type === 'sr') {
+    srBtn.className = 'quiz-mode-btn active'; srBtn.style.borderColor=''; srBtn.style.color='';
+    allBtn.className = 'quiz-mode-btn'; allBtn.style.borderColor=''; allBtn.style.color='';
+  } else {
+    allBtn.className = 'quiz-mode-btn active';
+    srBtn.className = 'quiz-mode-btn'; srBtn.style.borderColor='var(--yellow)'; srBtn.style.color='var(--yellow)';
+  }
+}
+
+// ── Spaced Repetition (SM-2) ─────────────────────────────────────
+function todayStr() { return new Date().toISOString().slice(0,10); }
+
+function getSREntry(id) {
+  if(!srData[id]) srData[id] = {interval:1, ef:2.5, nextReview:todayStr(), reps:0};
+  return srData[id];
+}
+
+function getSRDueWords() {
+  var today = todayStr();
+  return allWords().filter(function(w){
+    var e = srData[w.id];
+    if(!e) return true; // never reviewed = due
+    return e.nextReview <= today;
+  });
+}
+
+function updateSR(wordId, correct) {
+  var e = getSREntry(wordId);
+  if(correct) {
+    e.reps++;
+    if(e.reps === 1) e.interval = 1;
+    else if(e.reps === 2) e.interval = 6;
+    else e.interval = Math.round(e.interval * e.ef);
+    e.ef = Math.max(1.3, e.ef + 0.1 - (1-1)*(0.08 + (1-1)*0.02));
+  } else {
+    e.reps = 0;
+    e.interval = 1;
+    e.ef = Math.max(1.3, e.ef - 0.2);
+  }
+  var next = new Date();
+  next.setDate(next.getDate() + e.interval);
+  e.nextReview = next.toISOString().slice(0,10);
+  srData[wordId] = e;
+  saveData();
+}
+
+function getSRBadge(id) {
+  var e = srData[id];
+  var today = todayStr();
+  if(!e || e.nextReview <= today) return '<span class="sr-badge sr-due">복습</span>';
+  var days = Math.round((new Date(e.nextReview) - new Date(today)) / 86400000);
+  if(days <= 3) return '<span class="sr-badge sr-new">D+' + days + '</span>';
+  return '<span class="sr-badge sr-ok">D+' + days + '</span>';
+}
+
+function renderSRDueCount() {
+  var cnt = getSRDueWords().length;
+  document.getElementById('srDueCount').textContent = cnt;
+}
+
+// ── Article Tagging ───────────────────────────────────────────────
+function saveArticleTag() {
+  var tag = document.getElementById('articleTagInput').value.trim();
+  currentArticleTag = tag;
+  localStorage.setItem('fc_article_tag', tag);
+  updateArticleTagDisplay();
+  showToast(tag ? '기사 태그 저장: ' + tag : '태그 초기화됨', 'success');
+}
+
+function updateArticleTagDisplay() {
+  var el = document.getElementById('currentArticleDisplay');
+  if(!el) return;
+  if(currentArticleTag) {
+    el.innerHTML = '적용 중: <span class="article-tag">📰 ' + escHtml(currentArticleTag) + '</span>';
+    el.style.color = 'var(--accent2)';
+  } else {
+    el.textContent = '현재 태그 없음 — 단어 추가 시 이 태그가 자동 적용됩니다';
+    el.style.color = '';
+  }
+  var inp = document.getElementById('articleTagInput');
+  if(inp) inp.value = currentArticleTag;
+}
+
 function startQuiz() {
   var count = parseInt(document.getElementById('quizCount').value);
-  var words = allWords();
-  if(words.length < 4) { showToast('단어가 4개 이상 필요합니다', 'error'); return; }
-  quizWords = shuffle(words).slice(0, Math.min(count, words.length));
+  var pool;
+  if(quizType === 'sr') {
+    pool = getSRDueWords();
+    if(pool.length < 4) { showToast('오늘 복습할 단어가 4개 미만입니다', 'error'); return; }
+  } else {
+    pool = allWords();
+    if(pool.length < 4) { showToast('단어가 4개 이상 필요합니다', 'error'); return; }
+  }
+  quizWords = shuffle(pool).slice(0, Math.min(count, pool.length));
   quizIndex = 0; quizCorrect = 0; quizSessionWrong = [];
   document.getElementById('quizSetup').style.display = 'none';
   document.getElementById('quizActive').style.display = 'block';
@@ -445,8 +605,10 @@ function selectAnswer(selectedId, correctId) {
   if(selectedId !== correctId) {
     wrongAnswers[correctId] = (wrongAnswers[correctId]||0) + 1;
     quizSessionWrong.push(correctWord);
+    updateSR(correctId, false);
   } else {
     quizCorrect++;
+    updateSR(correctId, true);
   }
 
   setTimeout(function(){
@@ -550,6 +712,7 @@ async function aiSearch() {
 
 function addFromAI() {
   if(!aiResultData) return;
+  if(currentArticleTag) aiResultData.articleTag = currentArticleTag;
   addWord(aiResultData);
   document.getElementById('aiSearchInput').value = '';
   document.getElementById('aiResultBox').style.display = 'none';
@@ -561,7 +724,9 @@ function addManual() {
   var pos = document.getElementById('manualPos').value.trim();
   var ko = document.getElementById('manualKo').value.trim();
   if(!en || !ko) { showToast('단어와 뜻을 입력하세요', 'error'); return; }
-  addWord({id:'c'+Date.now(), en:en, pos:pos, ko:ko});
+  var w = {id:'c'+Date.now(), en:en, pos:pos, ko:ko};
+  if(currentArticleTag) w.articleTag = currentArticleTag;
+  addWord(w);
   document.getElementById('manualEn').value = '';
   document.getElementById('manualPos').value = '';
   document.getElementById('manualKo').value = '';
@@ -626,7 +791,7 @@ function renderStats() {
 }
 
 function exportData() {
-  var data = {custom:customWords, qs:{n:quizStats.total,c:quizStats.correct}, wrong:wrongAnswers, exportedAt:new Date().toISOString()};
+  var data = {custom:customWords, qs:{n:quizStats.total,c:quizStats.correct}, wrong:wrongAnswers, sr:srData, exportedAt:new Date().toISOString()};
   var blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
@@ -650,6 +815,7 @@ function importData(e) {
         });
       }
       if(data.wrong) Object.assign(wrongAnswers, data.wrong);
+      if(data.sr) Object.assign(srData, data.sr);
       saveData(); renderStats();
       document.getElementById('wordCount').textContent = allWords().length + '개';
       showToast(added + '개 단어 가져오기 완료', 'success');
@@ -684,7 +850,9 @@ function showToast(msg, type) {
 }
 
 loadData();
+renderArticleFilters();
 renderList();
+renderSRDueCount();
 </script>
 </body>
 </html>
